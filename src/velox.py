@@ -82,6 +82,6 @@ if __name__ == '__main__':
             timing = datetime.utcnow() - start_date
             duration = timing.seconds + timing.microseconds / 1000000.0
             logger.info("::Duration {}".format(duration))
-            logger.info("Simulate Call script finished")
+            logger.info("Tests finished")
         except Exception as e:
             logger.exception(e.message)
