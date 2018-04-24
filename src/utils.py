@@ -12,6 +12,12 @@ __all__ = ['lock', 'enable_log_to_stdout']
 
 
 def get_lock(process_name, logger=None):
+    '''
+    TODO
+    IMPORTANT: This has to be fixed to support Windows too
+    Now it works only in posix systems and will fail on Windows
+    '''
+
     lock_socket = socket.socket(socket.AF_UNIX)
     try:
         lock_socket.bind('\0' + process_name)
