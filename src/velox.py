@@ -6,7 +6,8 @@ import argparse
 import sys
 
 from datetime import datetime
-from utils import enable_log_to_stdout, lock
+from filelock import FileLock
+from utils import enable_log_to_stdout
 
 
 def read_file(fname):
@@ -31,9 +32,9 @@ if __name__ == '__main__':
     ops = fill_parse_args()
     log_name = "setup_tests"
     logger = enable_log_to_stdout(log_name)
-    with lock(log_name, logger=logger):
+    with FileLock("{}.lock".format(log_name)):
         try:
-            logger.info("Simulate Call script started")
+            logger.info("Tests setup script started")
             # to do
             timing = datetime.utcnow() - start_date
             duration = timing.seconds + timing.microseconds / 1000000.0
