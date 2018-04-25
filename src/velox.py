@@ -26,7 +26,7 @@ def fill_parse_args():
                         choices=['no', 'large', 'smalls', 'video', 'exercise'],
                         help='Channels to use in Kolibri: no (no channel), large (1 large channel ~ 1Gb),\n'
                         'smalls (10 x 30 Mb channels), video (channel with  multiple videos),\n'
-                        'exercise (channel with multiple exercises',
+                        'exercise (channel with multiple exercises)',
                         required=False, default='smalls')
     parser.add_argument('-l', '--learners', help='Number of learners that are going to use the tests',
                         required=False, type=int, default=29)
