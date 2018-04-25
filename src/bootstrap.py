@@ -17,6 +17,12 @@ import shutil
 
 
 def bootstrap(args):
+    """
+    Start the bootstrap process:
+      - set the KOLIBRI_HOME environment variable
+      - delete the current Kolibri SQLite database
+      - copy the database we previously prepared for testing
+    """
     set_KOLIBRI_HOME(args.kolibri_home)
 
     delete_current_db()
@@ -25,6 +31,9 @@ def bootstrap(args):
 
 
 def copy_clean_db():
+    """
+    Copy the previously prepared testing database to the KOLIBRI_HOME directory
+    """
     KOLIBRI_HOME = get_KOLIBRI_HOME()
     db_name = 'db.sqlite3'
 
@@ -34,6 +43,9 @@ def copy_clean_db():
 
 
 def delete_current_db():
+    """
+    Delete the current Kolibri SQLite databases
+    """
     db_files = ['db.sqlite3', 'db.sqlite3-shm', 'db.sqlite3-wal']
     for db_file in db_files:
         try:
@@ -44,6 +56,11 @@ def delete_current_db():
 
 
 def set_KOLIBRI_HOME(kolibri_home_arg):
+    """
+    Set the KOLIBRI_HOME environment variable:
+      - if the directory value has been passed as a script argument, use that
+      - set the default value to be the one defined as per the Kolibri code
+    """
     if kolibri_home_arg:
         KOLIBRI_HOME = kolibri_home_arg
     else:
@@ -53,6 +70,9 @@ def set_KOLIBRI_HOME(kolibri_home_arg):
 
 
 def get_KOLIBRI_HOME():
+    """
+    Return KOLIBRI_HOME environment variable
+    """
     return os.environ.get('KOLIBRI_HOME')
 
 
