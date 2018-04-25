@@ -6,9 +6,12 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 
 __all__ = ['copy_clean_db', 'delete_current_db', 'enable_log_to_stdout', 'get_kolibri_venv', 'set_kolibri_home']
 
+if sys.version_info < (3,):
+    FileNotFoundError = IOError
 
 def enable_log_to_stdout(logname):
     """Given a log name, outputs > INFO to stdout."""
