@@ -23,11 +23,11 @@ def fill_parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--database', help='Database type: sqlite or posgresql', required=False, default='sqlite')
     parser.add_argument('-c', '--channel',
-                        choices=['no', 'large', 'smalls', 'video', 'exercise'],
+                        choices=['no', 'large', 'multiple', 'video', 'exercise'],
                         help='Channels to use in Kolibri: no (no channel), large (1 large channel ~ 1Gb),\n'
-                        'smalls (10 x 30 Mb channels), video (channel with  multiple videos),\n'
+                        'multiple (10 x ~30 Mb channels), video (channel with multiple videos),\n'
                         'exercise (channel with multiple exercises)',
-                        required=False, default='smalls')
+                        required=False, default='multiple')
     parser.add_argument('-l', '--learners', help='Number of learners that are going to use the tests',
                         required=False, type=int, default=29)
 

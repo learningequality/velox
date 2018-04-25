@@ -13,7 +13,7 @@ config = {
             'large': [
                 'b3638b89b1984dbfb6d859c17fc875ee'
             ],
-            'multiple_small': [
+            'multiple': [
                 '2ac9112b4ec240538e5d3fa93502b51d',
                 '63699b1949224c80b5bb33fc77729433',
                 'b871fb7602f7485983881e9dfe959568',

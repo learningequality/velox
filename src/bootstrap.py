@@ -84,11 +84,11 @@ def fill_parse_args():
     parser.add_argument('-d', '--database', help='Database type: sqlite or posgresql', required=False,
                         default='sqlite')
     parser.add_argument('-c', '--channel',
-                        choices=['no', 'large', 'multiple_small', 'video', 'exercise'],
+                        choices=['no', 'large', 'multiple', 'video', 'exercise'],
                         help='Channels to use in Kolibri: no (no channel), large (1 large channel ~ 1Gb),'
-                             'multiple_small (10 x ~30 Mb channels), video (channel with multiple videos),\n'
+                             'multiple (10 x ~30 Mb channels), video (channel with multiple videos),\n'
                              'exercise (channel with multiple exercises)',
-                        required=False, default='multiple_small')
+                        required=False, default='multiple')
 
     return parser.parse_args()
 
