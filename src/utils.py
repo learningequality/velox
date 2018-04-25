@@ -5,6 +5,7 @@ import errno
 import logging
 import os
 import shutil
+import subprocess
 
 __all__ = ['copy_clean_db', 'delete_current_db', 'enable_log_to_stdout', 'get_kolibri_venv', 'set_kolibri_home']
 
@@ -78,7 +79,7 @@ def get_kolibri_venv(opts):
     return os.path.join(os.path.expanduser('~'), os.path.join('.venvs', 'kolibri'))
 
 
-def get_kolibri_exec():
+def get_kolibri_exec(opts):
     """
     Return the path to the Kolibri management command executable
     """

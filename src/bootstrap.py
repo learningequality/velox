@@ -14,7 +14,7 @@ Usage: python bootstrap.py
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
-
+import os
 import subprocess
 
 from datetime import datetime
@@ -60,7 +60,7 @@ def import_channels():
     for channel_id in channel_ids:
         for command in ['importchannel', 'importcontent']:
             try:
-                call_args = [get_kolibri_exec(), 'manage', command, 'network', channel_id]
+                call_args = [kolibri_exec, 'manage', command, 'network', channel_id]
                 logger.info('Running: {}'.format(' '.join(call_args)))
                 subprocess.call(call_args)
             except Exception:
