@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 Performance testing bootstrap script.
 
@@ -10,10 +13,16 @@ Usage: python bootstrap.py; or:
        KOLIBRI_HOME=/path/to/kolibri/home/dir python bootstrap.py
 """
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import argparse
 import errno
 import os
 import shutil
+
+from datetime import datetime
+from filelock import FileLock
+from utils import enable_log_to_stdout
 
 
 def bootstrap(args):
@@ -76,11 +85,41 @@ def get_KOLIBRI_HOME():
     return os.environ.get('KOLIBRI_HOME')
 
 
-if __name__ == '__main__':
-    # read command line args
+def fill_parse_args():
+    """
+    Read command line arguments
+    """
     parser = argparse.ArgumentParser(description='Velox bootstrap script.')
-    parser.add_argument('--kolibri-home', dest='kolibri_home', help='path to the Kolibri installation')
-    args = parser.parse_args()
+    parser.add_argument('-k', '--kolibri-home', required=False, dest='kolibri_home',
+                        help='path to the Kolibri installation')
+    parser.add_argument('-d', '--database', help='Database type: sqlite or posgresql', required=False,
+                        default='sqlite')
+    parser.add_argument('-c', '--channel',
+                        choices=['no', 'large', 'multiple_small', 'video', 'exercise'],
+                        help='Channels to use in Kolibri: no (no channel), large (1 large channel ~ 1Gb),\n'
+                             'multiple_small (10 x ~30 Mb channels), video (channel with multiple videos),\n'
+                             'exercise (channel with multiple exercises)',
+                        required=False, default='multiple_small')
 
-    # start the bootstrap process
-    bootstrap(args)
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    start_time = datetime.utcnow()
+    opts = fill_parse_args()
+    log_name = 'bootstrap_tests'
+    logger = enable_log_to_stdout(log_name)
+
+    with FileLock('{}.lock'.format(log_name)):
+        try:
+            logger.info('Bootstrap script started')
+
+            # start the bootstrap process
+            bootstrap(opts)
+
+            timing = datetime.utcnow() - start_time
+            duration = timing.seconds + timing.microseconds / 1000000.0
+            logger.info('::Duration {}'.format(duration))
+            logger.info('Bootstrap script finished')
+        except Exception as e:
+            logger.exception(e.message)
