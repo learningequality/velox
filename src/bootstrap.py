@@ -59,18 +59,17 @@ def import_channels():
     # run Kolibri `importchannel` django management command for each channel:
     #   `[kolibri_exec] manage importchannel network [channel_id]`
     for channel_id in channel_ids:
-        try:
-            call_args = [get_kolibri_exec(), 'manage', 'importchannel', 'network', channel_id]
-            logger.info('Running: {}'.format(' '.join(call_args)))
-            subprocess.call(call_args)
-        except Exception:
-            # try to prepend virtualenv python executable
-            kolibri_venv_python = os.path.join(get_kolibri_venv(), 'bin', 'python')
-            call_args.insert(0, kolibri_venv_python)
-            logger.info('Try to prepend virtualenv python executable, running: {}'.format(' '.join(call_args)))
-            subprocess.call(call_args)
-
-    # TODO: run `importcontent` command as well
+        for command in ['importchannel', 'importcontent']:
+            try:
+                call_args = [get_kolibri_exec(), 'manage', command, 'network', channel_id]
+                logger.info('Running: {}'.format(' '.join(call_args)))
+                subprocess.call(call_args)
+            except Exception:
+                # try to prepend virtualenv python executable
+                kolibri_venv_python = os.path.join(get_kolibri_venv(), 'bin', 'python')
+                call_args.insert(0, kolibri_venv_python)
+                logger.info('Try to prepend virtualenv python executable, running: {}'.format(' '.join(call_args)))
+                subprocess.call(call_args)
 
 
 def copy_clean_db():
