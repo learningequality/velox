@@ -12,7 +12,7 @@ from utils import enable_log_to_stdout
 
 def read_file(fname):
     """
-    Read file and decode in py2k
+    Read file and decode in py3
     """
     if sys.version_info < (3,):
         return open(fname).read().decode('utf-8')
@@ -36,7 +36,7 @@ def fill_parse_args():
 
 if __name__ == '__main__':
     start_date = datetime.utcnow()
-    ops = fill_parse_args()
+    opts = fill_parse_args()
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)
     with FileLock('{}.lock'.format(log_name)):
