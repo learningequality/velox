@@ -6,7 +6,6 @@ import logging
 import os
 import shutil
 import socket
-import subprocess
 import sys
 
 __all__ = ['copy_clean_db', 'delete_current_db', 'enable_log_to_stdout', 'get_kolibri_venv',
@@ -41,7 +40,7 @@ def copy_clean_db():
     return os.path.exists(os.path.join(kolibri_home, 'db.sqlite3'))
 
 
-def delete_current_db():
+def delete_current_db(logger):
     """
     Delete the current Kolibri SQLite databases
     """
@@ -49,6 +48,7 @@ def delete_current_db():
     for db_file in db_files:
         try:
             os.remove(os.path.join(get_kolibri_home(), db_file))
+            logger.info('Removing db file: {}'.format(db_file))
         except OSError as e:
             if e.errno != errno.ENOENT:  # errno.ENOENT = no such file or directory
                 raise  # re-raise exception if a different error occurred
@@ -78,27 +78,36 @@ def get_kolibri_home():
 
 def get_kolibri_venv(opts):
     """
-    Return the Kolibri virtualenv's path
+    Return the path to the Kolibri virtualenv
     """
     if opts.kolibri_venv:
         return opts.kolibri_venv
     return os.path.join(os.path.expanduser('~'), os.path.join('.venvs', 'kolibri'))
 
 
-def get_kolibri_exec(opts):
+def get_kolibri_dev(opts):
     """
-    Return the path to the Kolibri management command executable
+    Return the path to the Kolibri development installation
     """
-    if opts.kolibri_exec:
-        return opts.kolibri_exec
+    if opts.kolibri_dev:
+        return opts.kolibri_dev
+    return None
 
-    try:
-        # check if `kolibri` command is avilable and surpress stdout output if it is
-        cmd = 'kolibri'
-        subprocess.call([cmd], stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
-        return cmd
-    except FileNotFoundError:
-        return None
+
+def get_kolibri_module(opts):
+    """
+    Return the path to the kolibri module within the Kolibri developmnent installation directory
+    i.e. [kolibri_dev]/kolibri
+    """
+    return os.path.join(get_kolibri_dev(opts), 'kolibri')
+
+
+def get_kolibri_venv_python(opts):
+    """
+    Return the path to the python executable within the Kolibri virtualenv
+    i.e. [kolibri_venv]/bin/python
+    """
+    return os.path.join(get_kolibri_venv(opts), 'bin', 'python')
 
 
 def get_free_tcp_port():

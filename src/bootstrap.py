@@ -3,72 +3,54 @@
 
 """
 Performance testing bootstrap script.
-
-It will try to delete the current Kolibri related SQLite3
-database files and copy the prepared db.sqlite3 file to be
-used for tests.
-
-Usage: python bootstrap.py
 """
 
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
-import os
 import subprocess
 
 from datetime import datetime
 
 from filelock import FileLock
-from utils import copy_clean_db, enable_log_to_stdout, get_kolibri_exec, get_kolibri_venv
-from utils import set_kolibri_home, delete_current_db
+from utils import enable_log_to_stdout, get_kolibri_venv_python, get_kolibri_module
+from utils import set_kolibri_home
 from settings import config
 
 
-def bootstrap():
+def bootstrap(logger):
     """
-    Start the bootstrap process:
-      - set the KOLIBRI_HOME environment variable
-      - delete the current Kolibri SQLite database
-      - copy the database we previously prepared for testing
+    Start the bootstrap process
     """
     set_kolibri_home(opts, logger)
-
-    delete_current_db()
-    if copy_clean_db() and opts.channel:
-        import_channels()
+    import_channels()
 
 
 def import_channels():
-    kolibri_exec = get_kolibri_exec(opts)
-    if kolibri_exec:
-        logger.info('Using {} to run Kolibri'.format(kolibri_exec))
-    else:
-        logger.info('Couldn\'t find value for Kolibri management executable. Stopping...')
-        return
-
+    """
+    Imports the requested channels:
+        - tries to retrieve channel mappings from the configuration file
+        - get path to the python executable within Kolibri's virtualenv
+        - get path to the kolibri module within the development installation
+        - run Kolibri importchannel and importcontent django management commands for each of the requested channels:
+            - `[python_exec] [kolibri_module] manage importchannel network [channel_id]`
+            - `[python_exec] [kolibri_module] manage importcontent network [channel_id]`
+    """
     try:
         channel_ids = config['channels']['mappings'][opts.channel]
+        logger.info('Importing {} channels for mapping: `{}` ...'.format(len(channel_ids), opts.channel))
     except KeyError:
         logger.info('`{}` channel mapping doesn\'t exist (settings.py). Stopping...'.format(opts.channel))
         return
 
-    logger.info('Importing {} channels for mapping: `{}` ...'.format(len(channel_ids), opts.channel))
+    python_exec = get_kolibri_venv_python(opts)
+    kolibri_module = get_kolibri_module(opts)
 
-    # run Kolibri `importchannel` django management command for each channel:
-    #   `[kolibri_exec] manage importchannel network [channel_id]`
     for channel_id in channel_ids:
         for command in ['importchannel', 'importcontent']:
-            try:
-                call_args = [kolibri_exec, 'manage', command, 'network', channel_id]
-                logger.info('Running: {}'.format(' '.join(call_args)))
-                subprocess.call(call_args)
-            except Exception:
-                # try to prepend virtualenv python executable
-                kolibri_venv_python = os.path.join(get_kolibri_venv(opts), 'bin', 'python')
-                call_args.insert(0, kolibri_venv_python)
-                logger.info('Try to prepend virtualenv python executable, running: {}'.format(' '.join(call_args)))
-                subprocess.call(call_args)
+            call_args = [python_exec, kolibri_module, 'manage', command, 'network', channel_id]
+            logger.info('Running: {}'.format(' '.join(call_args)))
+            subprocess.call(call_args)
 
 
 def fill_parse_args():
@@ -76,8 +58,8 @@ def fill_parse_args():
     Read command line arguments
     """
     parser = argparse.ArgumentParser(description='Velox bootstrap script.')
-    parser.add_argument('-ke', '--kolibri-exec', required=False,
-                        help='path to the Kolibri management command executable')
+    parser.add_argument('-kd', '--kolibri-dev', required=False,
+                        help='path to the Kolibri development installation')
     parser.add_argument('-kv', '--kolibri-venv', required=False, help='path to the Kolibri virtualenv')
     parser.add_argument('-kh', '--kolibri-home', required=False,
                         help='path to the Kolibri home directory (KOLIBRI_HOME environment variable)')
@@ -104,7 +86,7 @@ if __name__ == '__main__':
             logger.info('Bootstrap script started')
 
             # start the bootstrap process
-            bootstrap()
+            bootstrap(logger)
 
             timing = datetime.utcnow() - start_time
             duration = timing.seconds + timing.microseconds / 1000000.0
