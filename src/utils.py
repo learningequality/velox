@@ -5,13 +5,16 @@ import errno
 import logging
 import os
 import shutil
+import socket
 import subprocess
 import sys
 
-__all__ = ['copy_clean_db', 'delete_current_db', 'enable_log_to_stdout', 'get_kolibri_venv', 'set_kolibri_home']
+__all__ = ['copy_clean_db', 'delete_current_db', 'enable_log_to_stdout', 'get_kolibri_venv',
+           'get_free_tcp_port', 'set_kolibri_home']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
+
 
 def enable_log_to_stdout(logname):
     """Given a log name, outputs > INFO to stdout."""
@@ -96,3 +99,11 @@ def get_kolibri_exec(opts):
         return cmd
     except FileNotFoundError:
         return None
+
+
+def get_free_tcp_port():
+    tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp.bind(('', 0))
+    _, port = tcp.getsockname()
+    tcp.close()
+    return port
