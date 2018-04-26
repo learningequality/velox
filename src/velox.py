@@ -13,6 +13,7 @@ from datetime import datetime
 from filelock import FileLock
 
 from utils import enable_log_to_stdout, get_free_tcp_port
+from utils import set_kolibri_home
 
 
 def read_file(fname):
@@ -43,8 +44,6 @@ def fill_parse_args():
 
 class KolibriServer(object):
 
-    _pre_migrated_db_dir = None
-
     def __init__(self, settings='kolibri.deployment.default.settings.base', db_name=None):
         self.env = os.environ.copy()
         self.env["KOLIBRI_HOME"] = tempfile.mkdtemp()
@@ -74,18 +73,45 @@ class KolibriServer(object):
 
 class DatabaseSetup(KolibriServer):
 
-    def __init__(self, settings='kolibri.deployment.default.settings.base', db_name=None):
-        super(DatabaseSetup, self).__init__(*args, **kwargs)
+    def __init__(self, opts, logger, db_name=None):
+        self.django_settings = 'kolibri.deployment.default.settings.base'
+        self.opts = opts
+        self.logger = logger
+        temp_dir = tempfile.mkdtemp()
 
-    def set_database(self, channel):
+        self.logger.info('Created temp working directory: {}'.format(temp_dir))
+        self.working_dir = os.path.join(temp_dir, 'kolibri')
+
+        super(DatabaseSetup, self).__init__(settings=self.django_settings, db_name=db_name)
+
+    def __set_database(self):
+        channel_dir = os.path.join('data', 'bootstrap', self.opts.channel)
+        if not os.path.exists(channel_dir):
+            self.logger.error('Channel data does not exist. Bootstrap script must be run first')
+            # To DO: Run bootstrap script from here
+            return False
+        self.logger.info('Copying bootstrapped data from {} to {}'.format(channel_dir, self.working_dir))
+        shutil.copytree(channel_dir, self.working_dir)
+        set_kolibri_home(self.working_dir, self.logger)
+        return True
+
+    def __set_learners(self):
         pass
 
-    def set_learners(self, learners):
+    def __set_classrooms(self):
         pass
 
-    def set_classrooms(self, classrooms):
-        pass
+    def do_setup(self):
+        if self.__set_database():
+            self.__set_classrooms()
+            self.__set_learners()
 
+    def do_clean(self):
+        try:
+            shutil.rmtree(os.path.split(self.working_dir)[0])
+            self.logger.info('Temp working directory has been deleted')
+        except IOError:
+            self.logger.error('Error trying to remove the working directory')
 
 if __name__ == '__main__':
     start_date = datetime.utcnow()
@@ -95,7 +121,10 @@ if __name__ == '__main__':
     with FileLock('{}.lock'.format(log_name)):
         try:
             logger.info('Tests setup script started')
+            db = DatabaseSetup(opts, logger)
+            db.do_setup()
             # to do
+            db.do_clean()
             timing = datetime.utcnow() - start_date
             duration = timing.seconds + timing.microseconds / 1000000.0
             logger.info('::Duration {}'.format(duration))
