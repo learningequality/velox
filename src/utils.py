@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, unicode_literals
 
-import errno
 import logging
 import os
-import shutil
 import socket
 import sys
 
-__all__ = ['copy_clean_db', 'delete_current_db', 'enable_log_to_stdout', 'get_kolibri_venv',
-           'get_free_tcp_port', 'set_kolibri_home']
+__all__ = ['enable_log_to_stdout', 'get_kolibri_venv', 'get_free_tcp_port', 'set_kolibri_home']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -28,43 +25,13 @@ def enable_log_to_stdout(logname):
     return log
 
 
-def copy_clean_db():
-    """
-    Copy the previously prepared testing database to the kolibri_home directory
-    """
-    kolibri_home = get_kolibri_home()
-    db_name = 'db.sqlite3'
-
-    shutil.copyfile(os.path.join('data', db_name),
-                    os.path.join(kolibri_home, db_name))
-    return os.path.exists(os.path.join(kolibri_home, 'db.sqlite3'))
-
-
-def delete_current_db(logger):
-    """
-    Delete the current Kolibri SQLite databases
-    """
-    db_files = ['db.sqlite3', 'db.sqlite3-shm', 'db.sqlite3-wal']
-    for db_file in db_files:
-        try:
-            os.remove(os.path.join(get_kolibri_home(), db_file))
-            logger.info('Removing db file: {}'.format(db_file))
-        except OSError as e:
-            if e.errno != errno.ENOENT:  # errno.ENOENT = no such file or directory
-                raise  # re-raise exception if a different error occurred
-
-
-def set_kolibri_home(opts, logger):
+def set_kolibri_home(path, logger):
     """
     Set the KOLIBRI_HOME environment variable:
-      - if the directory value has been passed as a script argument, use that
+      - if the directory value has been passed as an argument, use that
       - set the default value to be the one defined as per the Kolibri code
     """
-    if opts.kolibri_home:
-        kolibri_home = opts.kolibri_home
-    else:
-        kolibri_home = os.path.join(os.path.expanduser('~'), '.kolibri')
-
+    kolibri_home = path if path else os.path.join(os.path.expanduser('~'), '.kolibri')
     logger.info('Setting the KOLIBRI_HOME env to {}'.format(kolibri_home))
     os.environ.setdefault('KOLIBRI_HOME', kolibri_home)
 

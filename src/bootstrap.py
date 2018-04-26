@@ -8,7 +8,10 @@ Performance testing bootstrap script.
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
+import os
+import shutil
 import subprocess
+import tempfile
 
 from datetime import datetime
 
@@ -18,15 +21,54 @@ from utils import set_kolibri_home
 from settings import config
 
 
-def bootstrap(logger):
+def bootstrap(opts, logger):
     """
     Start the bootstrap process
     """
-    set_kolibri_home(opts, logger)
-    import_channels()
+    temp_dir = tempfile.mkdtemp()
+    logger.info('Creating temporary directory: {}'.format(temp_dir))
+
+    data_dir = get_or_create_data_dir(logger)
+
+    set_kolibri_home(temp_dir, logger)
+    if copy_clean_db(temp_dir, logger):
+        import_channels(opts)
+
+        channel_dir = os.path.join(data_dir, opts.channel)
+        logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
+        shutil.copytree(temp_dir, channel_dir)
 
 
-def import_channels():
+def copy_clean_db(dest, logger):
+    """
+    Copy the previously prepared testing database to the kolibri_home directory
+    """
+    db_name = 'db.sqlite3'
+    clean_db_path = os.path.join('data', db_name)
+    dest_path = os.path.join(dest, db_name)
+
+    shutil.copyfile(clean_db_path, dest_path)
+
+    if os.path.exists(dest_path):
+        logger.info('Copied clean db')
+        return True
+    else:
+        logger.info('Couldn\'t copy the clean db')
+        return False
+
+
+def get_or_create_data_dir(logger):
+    """
+    Get or create data directory in which to store the bootstrap generated data and databases or database dumps
+    """
+    bootstrap_data_dir = os.path.join('data', 'bootstrap')
+
+    if not os.path.exists(bootstrap_data_dir):
+        os.makedirs(bootstrap_data_dir)
+    return bootstrap_data_dir
+
+
+def import_channels(opts):
     """
     Imports the requested channels:
         - tries to retrieve channel mappings from the configuration file
@@ -58,7 +100,7 @@ def fill_parse_args():
     Read command line arguments
     """
     parser = argparse.ArgumentParser(description='Velox bootstrap script.')
-    parser.add_argument('-kd', '--kolibri-dev', required=False,
+    parser.add_argument('-kd', '--kolibri-dev', required=True,
                         help='path to the Kolibri development installation')
     parser.add_argument('-kv', '--kolibri-venv', required=False, help='path to the Kolibri virtualenv')
     parser.add_argument('-kh', '--kolibri-home', required=False,
@@ -86,7 +128,7 @@ if __name__ == '__main__':
             logger.info('Bootstrap script started')
 
             # start the bootstrap process
-            bootstrap(logger)
+            bootstrap(opts, logger)
 
             timing = datetime.utcnow() - start_time
             duration = timing.seconds + timing.microseconds / 1000000.0
