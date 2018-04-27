@@ -37,18 +37,21 @@ class DatabaseBootstrap(object):
         """
         Start the bootstrap process
         """
-        temp_dir = self.__create_temp_dir()
         data_dir = self.__get_or_create_data_dir()
+        channel_dir = os.path.join(data_dir, self.opts.channel)
+
+        # Check if channel mapping has already been imported and skip if it has
+        if self.__channel_already_imported(channel_dir):
+            self.logger.info('Channel has already been imported, skipping')
+            return
+
+        temp_dir = self.__create_temp_dir()
         set_kolibri_home(temp_dir, self.logger)
 
         if self.__copy_clean_db(temp_dir):
-            channel_dir = os.path.join(data_dir, self.opts.channel)
-            if os.path.exists(channel_dir):
-                self.logger.error('Channel had already been imported')
-            else:
-                if self.__import_channels(self.opts.channel):
-                    self.logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
-                    shutil.copytree(temp_dir, channel_dir)
+            if self.__import_channels(self.opts.channel):
+                self.logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
+                shutil.copytree(temp_dir, channel_dir)
 
         self.__remove_temp_dir(temp_dir)
 
@@ -94,7 +97,7 @@ class DatabaseBootstrap(object):
             channel_ids = config['channels']['mappings'][channel_mapping]
             self.logger.info('Importing {} channels for mapping: `{}`'.format(len(channel_ids), channel_mapping))
         except KeyError:
-            self.logger.error('`{}` channel mapping doesn\'t exist (settings.py). Stopping.'.format(channel_mapping))
+            self.logger.error('`{}` channel mapping doesn\'t exist (settings.py), stopping'.format(channel_mapping))
             return
 
         for channel_id in channel_ids:
@@ -126,6 +129,9 @@ class DatabaseBootstrap(object):
             self.logger.info('Temporary directory has been deleted')
         except IOError:
             self.logger.error('Error trying to remove temporary directory')
+
+    def __channel_already_imported(self, channel_dir):
+        return os.path.exists(channel_dir)
 
 
 if __name__ == '__main__':
