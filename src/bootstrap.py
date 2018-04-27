@@ -20,7 +20,7 @@ from utils import set_kolibri_home
 from settings import config
 
 
-class DatabaseBootstrap():
+class DatabaseBootstrap(object):
 
     def __init__(self, opts, **kwargs):
         if not opts:
