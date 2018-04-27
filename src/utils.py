@@ -112,11 +112,6 @@ def get_parse_args_definitions(wanted):
                 'required': False, 'help': 'path to the Kolibri virtualenv'
             }
         ],
-        'kolibri_home': [
-            '-kh', '--kolibri-home', {
-                'required': False, 'help': 'path to the Kolibri home directory (KOLIBRI_HOME environment variable)'
-            }
-        ],
         'database': [
             '-d', '--database', {
                 'required': False, 'default': 'sqlite', 'help': 'Database type: sqlite or posgresql'

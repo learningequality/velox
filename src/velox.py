@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
 
-import argparse
 import os
 import shutil
 import sys
@@ -12,8 +11,9 @@ import uuid
 from datetime import datetime
 from filelock import FileLock
 
+from bootstrap import DatabaseBootstrap
 from utils import enable_log_to_stdout, get_free_tcp_port
-from utils import set_kolibri_home, fill_parse_args
+from utils import fill_parse_args
 
 
 def read_file(fname):
@@ -68,14 +68,8 @@ class DatabaseSetup(KolibriServer):
         super(DatabaseSetup, self).__init__(settings=self.django_settings, db_name=db_name)
 
     def __set_database(self):
-        channel_dir = os.path.join('data', 'bootstrap', self.opts.channel)
-        if not os.path.exists(channel_dir):
-            self.logger.error('Channel data does not exist. Bootstrap script must be run first')
-            # To DO: Run bootstrap script from here
-            return False
-        self.logger.info('Copying bootstrapped data from {} to {}'.format(channel_dir, self.working_dir))
-        shutil.copytree(channel_dir, self.working_dir)
-        set_kolibri_home(self.working_dir, self.logger)
+        db_bootstrap = DatabaseBootstrap(opts=self.opts)
+        db_bootstrap.setup()
         return True
 
     def __set_learners(self):
@@ -99,7 +93,8 @@ class DatabaseSetup(KolibriServer):
 
 if __name__ == '__main__':
     start_date = datetime.utcnow()
-    opts = fill_parse_args(wanted=['database', 'channel', 'learners', 'classrooms'], description='Velox setup script')
+    opts = fill_parse_args(wanted=['kolibri_dev', 'kolibri_venv', 'database', 'channel', 'learners', 'classrooms'],
+                           description='Velox setup script')
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)
     with FileLock('{}.lock'.format(log_name)):
