@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, unicode_literals
 
+import argparse
 import logging
 import os
 import socket
@@ -83,3 +84,62 @@ def get_free_tcp_port():
     _, port = tcp.getsockname()
     tcp.close()
     return port
+
+
+def fill_parse_args(wanted, **kwargs):
+    if not wanted:
+        wanted = kwargs.get('wanted')
+    description = kwargs.get('description', None)
+
+    parser = argparse.ArgumentParser(description)
+    args_definitions = get_parse_args_definitions(wanted)
+
+    for arg_key, arg_definition in args_definitions.items():
+        arg_short, arg_long, arg_opts = arg_definition
+        parser.add_argument(arg_short, arg_long, **arg_opts)
+    return parser.parse_args()
+
+
+def get_parse_args_definitions(wanted):
+    definitions = {
+        'kolibri_dev': [
+            '-kd', '--kolibri-dev', {
+                'required': True, 'help': 'path to the Kolibri development installation'
+            },
+        ],
+        'kolibri_venv': [
+            '-kv', '--kolibri-venv', {
+                'required': False, 'help': 'path to the Kolibri virtualenv'
+            }
+        ],
+        'kolibri_home': [
+            '-kh', '--kolibri-home', {
+                'required': False, 'help': 'path to the Kolibri home directory (KOLIBRI_HOME environment variable)'
+            }
+        ],
+        'database': [
+            '-d', '--database', {
+                'required': False, 'default': 'sqlite', 'help': 'Database type: sqlite or posgresql'
+            }
+        ],
+        'channel': [
+            '-c', '--channel', {
+                'required': False, 'default': 'multiple', 'choices': ['no', 'large', 'multiple', 'video', 'exercise'],
+                'help': 'Channels to use in Kolibri: no (no channel), large (1 large channel ~ 1Gb),\n'
+                        'multiple (10 x ~30 Mb channels), video (channel with multiple videos),\n'
+                        'exercise (channel with multiple exercises)'
+            }
+        ],
+        'learners': [
+            '-l', '--learners', {
+                'required': False, 'type': int, 'default': 29, 'help': 'Number of learners that will use the tests'
+            }
+        ],
+        'classrooms': [
+            '-s', '--classrooms', {
+                'required': False, 'type': int, 'default': 1, 'help': 'Number of classrooms to be created.'
+            }
+        ],
+    }
+
+    return dict((k, definitions[k]) for k in wanted if k in definitions)

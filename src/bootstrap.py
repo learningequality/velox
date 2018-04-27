@@ -16,7 +16,7 @@ import tempfile
 from datetime import datetime
 
 from filelock import FileLock
-from utils import enable_log_to_stdout, get_kolibri_venv_python, get_kolibri_module
+from utils import enable_log_to_stdout, get_kolibri_venv_python, get_kolibri_module, fill_parse_args
 from utils import set_kolibri_home
 from settings import config
 
@@ -95,31 +95,10 @@ def import_channels(opts):
             subprocess.call(call_args)
 
 
-def fill_parse_args():
-    """
-    Read command line arguments
-    """
-    parser = argparse.ArgumentParser(description='Velox bootstrap script.')
-    parser.add_argument('-kd', '--kolibri-dev', required=True,
-                        help='path to the Kolibri development installation')
-    parser.add_argument('-kv', '--kolibri-venv', required=False, help='path to the Kolibri virtualenv')
-    parser.add_argument('-kh', '--kolibri-home', required=False,
-                        help='path to the Kolibri home directory (KOLIBRI_HOME environment variable)')
-    parser.add_argument('-d', '--database', help='Database type: sqlite or posgresql', required=False,
-                        default='sqlite')
-    parser.add_argument('-c', '--channel',
-                        choices=['no', 'large', 'multiple', 'video', 'exercise'],
-                        help='Channels to use in Kolibri: no (no channel), large (1 large channel ~ 1Gb),'
-                             'multiple (10 x ~30 Mb channels), video (channel with multiple videos),\n'
-                             'exercise (channel with multiple exercises)',
-                        required=False, default='multiple')
-
-    return parser.parse_args()
-
-
 if __name__ == '__main__':
     start_time = datetime.utcnow()
-    opts = fill_parse_args()
+    wanted_args = ['kolibri_dev', 'kolibri_venv', 'kolibri_home', 'database', 'channel']
+    opts = fill_parse_args(wanted=wanted_args, description='Velox bootstrap script')
     log_name = 'bootstrap_tests'
     logger = enable_log_to_stdout(log_name)
 
