@@ -77,7 +77,7 @@ class DatabaseBootstrap(object):
             self.logger.info('Copied clean db to {}'.format(dest_path))
             return True
         else:
-            self.logger.info('Couldn\'t copy the clean db to {}'.format(dest_path))
+            self.logger.error('Error while copying clean db to {}'.format(dest_path))
             return False
 
     def __import_channels(self, channel_mapping):
@@ -94,7 +94,7 @@ class DatabaseBootstrap(object):
             channel_ids = config['channels']['mappings'][channel_mapping]
             self.logger.info('Importing {} channels for mapping: `{}`'.format(len(channel_ids), channel_mapping))
         except KeyError:
-            self.logger.info('`{}` channel mapping doesn\'t exist (settings.py). Stopping...'.format(channel_mapping))
+            self.logger.error('`{}` channel mapping doesn\'t exist (settings.py). Stopping.'.format(channel_mapping))
             return
 
         for channel_id in channel_ids:
@@ -117,7 +117,7 @@ class DatabaseBootstrap(object):
             self.logger.info('Creating temporary directory: {}'.format(temp_dir))
             return temp_dir
         except IOError:
-            self.logger.info('Error trying to create temporary directory: {}'.format(temp_dir))
+            self.logger.error('Error trying to create temporary directory: {}'.format(temp_dir))
             return None
 
     def __remove_temp_dir(self, temp_dir):
