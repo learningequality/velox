@@ -16,7 +16,7 @@ from datetime import datetime
 
 from filelock import FileLock
 from utils import enable_log_to_stdout, get_kolibri_venv_python, get_kolibri_module, fill_parse_args
-from utils import set_kolibri_home
+from utils import manage_cli, set_kolibri_home
 from settings import config
 
 
@@ -40,10 +40,13 @@ class DatabaseBootstrap(object):
         set_kolibri_home(temp_dir, self.logger)
 
         if self.__copy_clean_db(temp_dir):
-            self.__import_channels(self.opts.channel)
             channel_dir = os.path.join(data_dir, self.opts.channel)
-            self.logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
-            shutil.copytree(temp_dir, channel_dir)
+            if os.path.exists(channel_dir):
+                self.logger.error('Channel had already been imported')
+            else:
+                if self.__import_channels(self.opts.channel):
+                    self.logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
+                    shutil.copytree(temp_dir, channel_dir)
 
         self.__remove_temp_dir(temp_dir)
 
@@ -92,14 +95,19 @@ class DatabaseBootstrap(object):
             self.logger.info('`{}` channel mapping doesn\'t exist (settings.py). Stopping...'.format(channel_mapping))
             return
 
-        python_exec = get_kolibri_venv_python(self.opts)
-        kolibri_module = get_kolibri_module(self.opts)
-
         for channel_id in channel_ids:
             for command in ['importchannel', 'importcontent']:
-                call_args = [python_exec, kolibri_module, 'manage', command, 'network', channel_id]
+                call_args = manage_cli(self.opts, command, 'network', channel_id)
                 self.logger.info('Running: {}'.format(' '.join(call_args)))
-                subprocess.call(call_args)
+                try:
+                    subprocess.call(call_args)
+                except OSError as e:
+                    if e[1] == 'Permission denied':
+                        self.logger.error('Kolibri installation not found, check your args')
+                    else:
+                        self.logger.error(e[1])
+                    return False
+        return True
 
     def __create_temp_dir(self):
         try:
@@ -121,7 +129,7 @@ class DatabaseBootstrap(object):
 if __name__ == '__main__':
     start_time = datetime.utcnow()
 
-    wanted_args = ['kolibri_dev', 'kolibri_venv', 'database', 'channel']
+    wanted_args = ['kolibri_dev', 'kolibri_venv', 'kolibri_exec', 'database', 'channel']
     opts = fill_parse_args(wanted=wanted_args, description='Velox bootstrap script')
 
     log_name = 'bootstrap_tests'

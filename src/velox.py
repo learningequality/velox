@@ -93,7 +93,7 @@ class DatabaseSetup(KolibriServer):
 
 if __name__ == '__main__':
     start_date = datetime.utcnow()
-    opts = fill_parse_args(wanted=['kolibri_dev', 'kolibri_venv', 'database', 'channel', 'learners', 'classrooms'],
+    opts = fill_parse_args(wanted=['kolibri_dev', 'kolibri_venv', 'kolibri_exec', 'database', 'channel', 'learners', 'classrooms'],
                            description='Velox setup script')
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)

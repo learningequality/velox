@@ -7,7 +7,7 @@ import os
 import socket
 import sys
 
-__all__ = ['enable_log_to_stdout', 'get_kolibri_venv', 'get_free_tcp_port', 'set_kolibri_home']
+__all__ = ['enable_log_to_stdout', 'get_kolibri_venv', 'get_free_tcp_port', 'manage_cli', 'set_kolibri_home']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -104,12 +104,17 @@ def get_parse_args_definitions(wanted):
     definitions = {
         'kolibri_dev': [
             '-kd', '--kolibri-dev', {
-                'required': True, 'help': 'path to the Kolibri development installation'
+                'required': False, 'help': 'path to the Kolibri development installation'
             },
         ],
         'kolibri_venv': [
             '-kv', '--kolibri-venv', {
                 'required': False, 'help': 'path to the Kolibri virtualenv'
+            }
+        ],
+        'kolibri_exec': [
+            '-ke', '--kolibri-exec', {
+                'required': False, 'help': 'command line to execute Kolibri cli'
             }
         ],
         'database': [
@@ -127,7 +132,7 @@ def get_parse_args_definitions(wanted):
         ],
         'learners': [
             '-l', '--learners', {
-                'required': False, 'type': int, 'default': 29, 'help': 'Number of learners that will use the tests'
+                'required': False, 'type': int, 'default': 30, 'help': 'Number of learners that will use the tests'
             }
         ],
         'classrooms': [
@@ -138,3 +143,20 @@ def get_parse_args_definitions(wanted):
     }
 
     return dict((k, definitions[k]) for k in wanted if k in definitions)
+
+
+def manage_cli(opts, *args):
+    """
+    Returns the right way to execute kolibri manage commands,
+    depending on the provided opts
+    """
+    if opts.kolibri_exec:
+        commands = [opts.kolibri_exec, ]
+    elif opts.kolibri_dev:
+        python_exec = get_kolibri_venv_python(opts)
+        kolibri_module = get_kolibri_module(opts)
+        commands = [python_exec, kolibri_module]
+    else:
+        commands = ['kolibri', ]
+
+    return commands + ['manage', ] + list(args)
