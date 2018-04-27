@@ -15,7 +15,7 @@ import tempfile
 from datetime import datetime
 
 from filelock import FileLock
-from utils import enable_log_to_stdout, get_kolibri_venv_python, get_kolibri_module, fill_parse_args
+from utils import enable_log_to_stdout, fill_parse_args
 from utils import manage_cli, set_kolibri_home
 from settings import config
 
@@ -84,7 +84,7 @@ class DatabaseBootstrap(object):
             - tries to retrieve channel mappings from the configuration file
             - get path to the python executable within Kolibri's virtualenv
             - get path to the kolibri module within the development installation
-            - run Kolibri importchannel and importcontent django management commands for each of the requested channels:
+            - run Kolibri importchannel and importcontent django management commands for each of the channels:
                 - `[python_exec] [kolibri_module] manage importchannel network [channel_id]`
                 - `[python_exec] [kolibri_module] manage importcontent network [channel_id]`
         """
