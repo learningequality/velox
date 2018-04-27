@@ -22,12 +22,14 @@ from settings import config
 
 class DatabaseBootstrap(object):
 
-    def __init__(self, opts, **kwargs):
+    def __init__(self, opts, logger, **kwargs):
         if not opts:
-            opts = kwargs.get(opts, None)
+            opts = kwargs.get('opts', None)
+        if not logger:
+            logger = kwargs.get('logger', None)
 
         self.opts = opts
-        self.logger = enable_log_to_stdout('bootstrap_tests')
+        self.logger = logger
 
         super(DatabaseBootstrap, self).__init__()
 
@@ -139,7 +141,7 @@ if __name__ == '__main__':
         try:
             logger.info('Bootstrap script started')
 
-            db_bootstrap = DatabaseBootstrap(opts=opts)
+            db_bootstrap = DatabaseBootstrap(opts=opts, logger=logger)
             db_bootstrap.setup()
 
             timing = datetime.utcnow() - start_time

@@ -68,7 +68,7 @@ class DatabaseSetup(KolibriServer):
         super(DatabaseSetup, self).__init__(settings=self.django_settings, db_name=db_name)
 
     def __set_database(self):
-        db_bootstrap = DatabaseBootstrap(opts=self.opts)
+        db_bootstrap = DatabaseBootstrap(opts=self.opts, logger=self.logger)
         db_bootstrap.setup()
         return True
 
