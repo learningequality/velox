@@ -140,6 +140,11 @@ def get_parse_args_definitions(wanted):
                 'required': False, 'type': int, 'default': 1, 'help': 'Number of classrooms to be created.'
             }
         ],
+        'test': [
+            '-t', '--test', {
+                'required': False, 'default': 'all', 'help': 'Name of the test to be run (or "all" to run them all)'
+            }
+        ]
     }
 
     return dict((k, definitions[k]) for k in wanted if k in definitions)
