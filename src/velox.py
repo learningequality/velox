@@ -28,7 +28,7 @@ def read_file(fname):
 
 class DatabaseSetup(object):
 
-    def __init__(self, opts, logger, db_name=None):
+    def __init__(self, opts, logger, db_name=''):
         self.django_settings = 'kolibri.deployment.default.settings.base'
         self.opts = opts
         self.logger = logger
@@ -55,8 +55,7 @@ class DatabaseSetup(object):
         set_kolibri_home(self.working_dir, self.logger)
 
     def __generate_user_data(self):
-        import ipdb;ipdb.set_trace()
-        self.manage('generateuserdata', '--classes {}'.format(self.opts.classrooms), '--users {}'.format(self.opts.learners))
+        self.manage('generateuserdata', '--classes', str(self.opts.classrooms), '--users', str(self.opts.learners))
 
     def do_setup(self):
         self.__set_database()
@@ -69,10 +68,12 @@ class DatabaseSetup(object):
         except IOError:
             self.logger.error('Error trying to remove the working directory')
 
-    def manage(self, *args):
-        call_args = manage_cli(self.opts, args)
-        subprocess.Popen(call_args, env=self.env)
-        # sh.kolibri.manage(*args, _env=self.env, **kwargs)
+    def manage(self, *args, **kwargs):
+        call_args = manage_cli(self.opts, *args)
+        try:
+            subprocess.Popen(call_args, env=self.env)
+        except Exception as e:
+            self.logger.error(e.message)
 
     def start(self):
         # self._instance = sh.kolibri.start(port=self.port, foreground=True, _bg=True, _env=self.env)
@@ -99,6 +100,7 @@ if __name__ == '__main__':
             db.do_setup()
 
             # TO DO : run actual tests
+            import ipdb;ipdb.set_trace()
             db.do_clean()
             timing = datetime.utcnow() - start_date
             duration = timing.seconds + timing.microseconds / 1000000.0

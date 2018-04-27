@@ -132,7 +132,8 @@ def get_parse_args_definitions(wanted):
         ],
         'learners': [
             '-l', '--learners', {
-                'required': False, 'type': int, 'default': 30, 'help': 'Number of learners that will use the tests'
+                'required': False, 'type': int, 'default': 30,
+                'help': 'Number of learners per classroom that will use the tests'
             }
         ],
         'classrooms': [
