@@ -1,12 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Performance testing launcher script.
+Execution examples:
+Using a pex file:
+    python src/velox.py -c video -ke /datos/le/kolibri-v0.9.1.pex -l 30
+Having kolibri installed in the system:
+    python src/velox.py -c video
+From development environment:
+    python src/velox.py -c video -kv /datos/le/kolibri/venv/  -kd /datos/le/kolibri -l 10 -s 2
+"""
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import requests
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
 import uuid
@@ -20,16 +29,16 @@ from utils import enable_log_to_stdout, get_free_tcp_port
 from utils import set_kolibri_home, fill_parse_args, manage_cli, select_cli
 
 
-def read_file(fname):
-    """
-    Read file and decode in py3
-    """
-    if sys.version_info < (3,):
-        return open(fname).read().decode('utf-8')
-    return open(fname).read()
-
-
 class DatabaseSetup(object):
+
+    """
+    Main object centralizing all the needed tasks to setup the environment,
+    launch Kolibri, run tests and clean it all afterwards.
+
+    :param: opts: Args passed through when calling the script from the command line
+    :param: logger: Object to log events during the execution
+    :param: db_name: In case of using Postgresql, name of the db for Kolibri
+    """
 
     def __init__(self, opts, logger, db_name=''):
         self.django_settings = 'kolibri.deployment.default.settings.base'
@@ -49,6 +58,10 @@ class DatabaseSetup(object):
         self._instance = None
 
     def __set_database(self):
+        """
+        Uses the bootstraped data and database to setup a new
+        Kolibri working environment
+        """
         channel_dir = os.path.join('data', 'bootstrap', self.opts.channel)
         if not os.path.exists(channel_dir):
             self.logger.error('Channel data does not exist. Running bootstrap')
@@ -59,13 +72,23 @@ class DatabaseSetup(object):
         set_kolibri_home(self.working_dir, self.logger)
 
     def __generate_user_data(self):
+        """
+        Generate testing data in the database, according to the args
+        provided when executing velox from the command line
+        """
         self.manage('generateuserdata', '--classes', str(self.opts.classrooms), '--users', str(self.opts.learners))
 
     def do_setup(self):
+        """
+        Prepare all the envirnoment to be able to run Kolibri and tests
+        """
         self.__set_database()
         self.__generate_user_data()
 
     def do_clean(self):
+        """ Finishes Kolibri server and deletes all the temp files used
+        to create the running environment
+        """
         self._instance.kill()
         self.logger.info('Kolibri server has been stopped')
         try:
@@ -77,6 +100,9 @@ class DatabaseSetup(object):
             pass
 
     def manage(self, *args):
+        """
+        Handler to run kolibri manage to invoke a Django command
+        """
         call_args = manage_cli(self.opts, *args)
         try:
             subprocess.Popen(call_args, env=self.env)
@@ -84,6 +110,9 @@ class DatabaseSetup(object):
             self.logger.error(e.message)
 
     def start(self):
+        """
+        Starts Kolibri web server
+        """
         try:
             kolibri_commands = select_cli(self.opts) + ['start', '--port={}'.format(self.port), '--foreground']
             if opts.kolibri_dev:
@@ -95,6 +124,9 @@ class DatabaseSetup(object):
             pass
 
     def _wait_for_server_start(self, timeout=20):
+        """
+        Pauses this script until the web server is serving requests
+        """
         for _ in range(timeout * 2):
             try:
                 resp = requests.get(self.base_url, timeout=3)
@@ -109,7 +141,8 @@ class DatabaseSetup(object):
 
 if __name__ == '__main__':
     start_date = datetime.utcnow()
-    wanted_args = ['kolibri_dev', 'kolibri_venv', 'kolibri_exec', 'database', 'channel', 'learners', 'classrooms', 'test']
+    wanted_args = ['kolibri_dev', 'kolibri_venv', 'kolibri_exec', 'database', 'channel',
+                   'learners', 'classrooms', 'test']
     opts = fill_parse_args(wanted=wanted_args, description='Velox setup script')
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)
