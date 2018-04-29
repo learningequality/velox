@@ -7,7 +7,8 @@ import os
 import socket
 import sys
 
-__all__ = ['enable_log_to_stdout', 'get_kolibri_venv', 'get_free_tcp_port', 'manage_cli', 'set_kolibri_home']
+__all__ = ['enable_log_to_stdout', 'get_kolibri_venv', 'get_free_tcp_port', 'manage_cli', 'set_kolibri_home',
+           'select_cli']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -151,9 +152,9 @@ def get_parse_args_definitions(wanted):
     return dict((k, definitions[k]) for k in wanted if k in definitions)
 
 
-def manage_cli(opts, *args):
+def select_cli(opts):
     """
-    Returns the right way to execute kolibri manage commands,
+    Returns the right way to call kolibri execution,
     depending on the provided opts
     """
     if opts.kolibri_exec:
@@ -164,5 +165,14 @@ def manage_cli(opts, *args):
         commands = [python_exec, kolibri_module]
     else:
         commands = ['kolibri', ]
+    return commands
+
+
+def manage_cli(opts, *args):
+    """
+    Returns the right way to execute kolibri manage commands,
+    depending on the provided opts
+    """
+    commands = select_cli(opts)
 
     return commands + ['manage', ] + list(args)
