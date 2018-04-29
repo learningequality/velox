@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+Common function used by different parts of the application
+"""
 from __future__ import print_function, unicode_literals
 
 import argparse
@@ -80,6 +83,9 @@ def get_kolibri_venv_python(opts):
 
 
 def get_free_tcp_port():
+    """
+    Find a free tcp port to run Kolibri server
+    """
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp.bind(('', 0))
     _, port = tcp.getsockname()
@@ -88,6 +94,11 @@ def get_free_tcp_port():
 
 
 def fill_parse_args(wanted, **kwargs):
+    """
+    Create the setup to parse args for the application scripts
+    :param: wanted: list of args the application will use
+    :returns: A parser object to be used by the script
+    """
     if not wanted:
         wanted = kwargs.get('wanted')
     description = kwargs.get('description', None)
@@ -95,13 +106,18 @@ def fill_parse_args(wanted, **kwargs):
     parser = argparse.ArgumentParser(description)
     args_definitions = get_parse_args_definitions(wanted)
 
-    for arg_key, arg_definition in args_definitions.items():
+    for _, arg_definition in args_definitions.items():
         arg_short, arg_long, arg_opts = arg_definition
         parser.add_argument(arg_short, arg_long, **arg_opts)
     return parser.parse_args()
 
 
 def get_parse_args_definitions(wanted):
+    """
+    Parse the args the script neeeds
+    :param: wanted: list of args the application will use
+    :returns: A list with the options for the wanted args
+    """
     definitions = {
         'kolibri_dev': [
             '-kd', '--kolibri-dev', {
