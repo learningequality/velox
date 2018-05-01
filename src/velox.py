@@ -23,7 +23,7 @@ import uuid
 from datetime import datetime
 from filelock import FileLock
 
-from bootstrap import DatabaseBootstrap
+from bootstrap import bootstrap_database
 from requests.exceptions import RequestException
 from utils import enable_log_to_stdout, get_free_tcp_port
 from utils import set_kolibri_home, fill_parse_args, manage_cli, select_cli
@@ -65,8 +65,7 @@ class DatabaseSetup(object):
         channel_dir = os.path.join('data', 'bootstrap', self.opts.channel)
         if not os.path.exists(channel_dir):
             self.logger.error('Channel data does not exist. Running bootstrap')
-            db_bootstrap = DatabaseBootstrap(opts=self.opts, logger=self.logger)
-            db_bootstrap.setup()
+            bootstrap_database(self.opts, self.logger)
         self.logger.info('Copying bootstrapped data from {} to {}'.format(channel_dir, self.working_dir))
         shutil.copytree(channel_dir, self.working_dir)
         set_kolibri_home(self.working_dir, self.logger)
