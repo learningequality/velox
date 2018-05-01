@@ -16,6 +16,7 @@ import os
 import requests
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -119,8 +120,12 @@ class DatabaseSetup(object):
             self._instance = subprocess.Popen(kolibri_commands, env=self.env)
             self._wait_for_server_start()
             self.logger.info('Kolibri server started and running in port {}'.format(self.port))
+            return True
         except OSError:
-            pass
+            self.logger.error("Kolibri not found. Tests can't continue")
+        except Exception:
+            self.logger.error("Kolibri server did not start")
+        return False
 
     def _wait_for_server_start(self, timeout=20):
         """
@@ -150,7 +155,9 @@ if __name__ == '__main__':
             logger.info('Tests setup script started')
             db = DatabaseSetup(opts, logger)
             db.do_setup()
-            db.start()
+            if not db.start():
+                db.do_clean()
+                sys.exit(1)
 
             # TO DO : run actual tests
             import ipdb
