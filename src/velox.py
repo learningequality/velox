@@ -23,9 +23,11 @@ import uuid
 
 from datetime import datetime
 from filelock import FileLock
+from importlib import import_module
 
 from bootstrap import bootstrap_database
 from requests.exceptions import RequestException
+from utils import calculate_duration
 from utils import enable_log_to_stdout, get_free_tcp_port
 from utils import set_kolibri_home, fill_parse_args, manage_cli, select_cli
 
@@ -85,7 +87,7 @@ class DatabaseSetup(object):
         self.__set_database()
         self.__generate_user_data()
 
-    def do_clean(self):
+    def do_clean(self, error_exit=False):
         """ Finishes Kolibri server and deletes all the temp files used
         to create the running environment
         """
@@ -98,6 +100,8 @@ class DatabaseSetup(object):
             self.logger.error('Error trying to remove the working directory')
         except OSError:
             pass
+        if error_exit:
+            sys.exit(1)
 
     def manage(self, *args):
         """
@@ -142,6 +146,34 @@ class DatabaseSetup(object):
 
         raise Exception('Server did not start within {} seconds'.format(timeout))
 
+    def load_tests(self):
+        """
+        If a test name is passed as an argument it returns its module.
+        If not, it will return all the modules for all the tests available
+        inside the plugin directory.
+        """
+        def load_test(test_name):
+            """
+            Returns the module in plugins directory named test_name
+            :param: test_name: Name of test file in the plugins directory
+            :returns: Loaded python module
+            """
+            if test_name.lower().endswith('.py'):
+                test_name = test_name[:-3]
+            module = import_module('plugins.{}'.format(test_name))
+            return module
+
+        if self.opts.test != 'all':
+            yield load_test(self.opts.test)
+        else:
+            plugins_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plugins')
+            entries = os.listdir(plugins_path)
+            for entry in entries:
+                if entry != '__init__.py' and entry.endswith('.py'):
+                    yield load_test(entry)
+                else:
+                    continue
+
 
 if __name__ == '__main__':
     start_date = datetime.utcnow()
@@ -150,22 +182,38 @@ if __name__ == '__main__':
     opts = fill_parse_args(wanted=wanted_args, description='Velox setup script')
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)
+    tests_durations = {}
     with FileLock('{}.lock'.format(log_name)):
         try:
             logger.info('Tests setup script started')
             db = DatabaseSetup(opts, logger)
             db.do_setup()
             if not db.start():
-                db.do_clean()
-                sys.exit(1)
+                db.do_clean(True)
 
-            # TO DO : run actual tests
-            import ipdb
-            ipdb.set_trace()
+            for test in db.load_tests():
+                # Each test is done three times
+                tests_durations[test.__name__] = []
+                for i in range(3):
+                    test_start = datetime.utcnow()
+                    logger.info('{n} - Running test {test_name}'.format(n=i + 1, test_name=test.__name__))
+                    try:
+                        test.run()
+                    except AttributeError:
+                        logger.error('{} is not a correct module to run tests'.format(test.__name__))
+                        db.do_clean(True)
+                    except Exception as e:
+                        print (e.message)
+                        logger.error('Error {message} when trying to run {test_name}'.format(message=e.message,
+                                                                                             test_name=test.__name__))
+                    tests_durations[test.__name__].append(calculate_duration(test_start))
             db.do_clean()
-            timing = datetime.utcnow() - start_date
-            duration = timing.seconds + timing.microseconds / 1000000.0
+            duration = calculate_duration(start_date)
             logger.info('::Duration {}'.format(duration))
             logger.info('Tests finished')
+            if tests_durations:
+                logger.info('These are the tests durations:')
+                logger.info(tests_durations)
+
         except Exception as e:
             logger.exception(e.message)

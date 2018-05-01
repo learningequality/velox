@@ -10,8 +10,10 @@ import os
 import socket
 import sys
 
-__all__ = ['enable_log_to_stdout', 'get_kolibri_venv', 'get_free_tcp_port', 'manage_cli', 'set_kolibri_home',
-           'select_cli']
+from datetime import datetime
+
+__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_kolibri_venv', 'get_free_tcp_port',
+           'manage_cli', 'set_kolibri_home', 'select_cli']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -192,3 +194,14 @@ def manage_cli(opts, *args):
     commands = select_cli(opts)
 
     return commands + ['manage', ] + list(args)
+
+
+def calculate_duration(start):
+    """
+    Returns the difference in seconds between start and now
+    :param: start: datetime to begin
+    :returns: Seconds between start and end
+    """
+    timing = datetime.utcnow() - start
+    duration = timing.seconds + timing.microseconds / 1000000.0
+    return duration
