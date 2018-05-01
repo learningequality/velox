@@ -5,10 +5,18 @@ Performance testing launcher script.
 Execution examples:
 Using a pex file:
     python src/velox.py -c video -ke /datos/le/kolibri-v0.9.1.pex -l 30
+    python src/velox.py -c video -ke /datos/le/kolibri-v0.9.1.pex -l 5 -t dummy_test
 Having kolibri installed in the system:
     python src/velox.py -c video
 From development environment:
     python src/velox.py -c video -kv /datos/le/kolibri/venv/  -kd /datos/le/kolibri -l 10 -s 2
+
+IMPORTANT NOTES:
+    * Tests are fetched from the plugins directory.
+    * Tests need to have a 'run' function that will be executed to run the test.
+    * If no test is passed using the command line args all the tests in the directory will be run.
+    * Every test is run three times and the execution times are logged at the end of the process.
+
 """
 from __future__ import absolute_import, print_function, unicode_literals
 
