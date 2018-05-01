@@ -176,8 +176,7 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
         """
         if self.__prepare_db_connection() and self.import_channels(self.channel_mapping):
             self.move_imported_data(self.temp_dir, self.channel_dir)
-
-            # TODO: export postgres db
+            self.__dump_db()
 
     def __prepare_db_connection(self):
         try:
@@ -194,6 +193,26 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
         # Set engine manually since it's not included in the settings.py to avoid duplication
         os.environ.setdefault('KOLIBRI_DB_ENGINE', 'postgresql')
 
+        return True
+
+    def __dump_db(self):
+        dump_name = '{}.sql'.format(self.channel_mapping)
+        dump_path = os.path.join(self.channel_dir, dump_name)
+        dump_cmd = ['pg_dump',
+                    '-U', os.environ.get('KOLIBRI_DB_USER'),
+                    '-h', os.environ.get('KOLIBRI_DB_HOST') or 'localhost',
+                    os.environ.get('KOLIBRI_DB_NAME'),
+                    '--clean',
+                    '-f', dump_path]
+
+        p = subprocess.Popen(dump_cmd, env={'PGPASSWORD': os.environ.get('KOLIBRI_DB_PASSWORD')})
+        p.wait()
+
+        if not os.path.exists(dump_path):
+            self.logger.error('Error trying to dump Postgres database')
+            return False
+
+        self.logger.info('Postgres database dump created: {}'.format(dump_name))
         return True
 
 
