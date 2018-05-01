@@ -12,9 +12,7 @@ import shutil
 import subprocess
 import tempfile
 
-from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from six import with_metaclass
 
 from filelock import FileLock
 from utils import enable_log_to_stdout, fill_parse_args, manage_cli, set_kolibri_home
@@ -61,9 +59,8 @@ class DatabaseBootstrap(object):
 
         return True
 
-    @abstractmethod
     def bootstrap(self):
-        pass
+        raise NotImplementedError
 
     """
     Global environment cleaning phase
@@ -144,7 +141,7 @@ class DatabaseBootstrap(object):
             self.logger.error('Error trying to remove temporary directory')
 
 
-class SQLiteDatabaseBootstrap(with_metaclass(ABCMeta, DatabaseBootstrap)):
+class SQLiteDatabaseBootstrap(DatabaseBootstrap):
 
     def bootstrap(self):
         """
@@ -171,7 +168,7 @@ class SQLiteDatabaseBootstrap(with_metaclass(ABCMeta, DatabaseBootstrap)):
             return False
 
 
-class PostgreSQLDatabaseBootstrap(with_metaclass(ABCMeta, DatabaseBootstrap)):
+class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
 
     def bootstrap(self):
         """
