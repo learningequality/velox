@@ -27,10 +27,9 @@ def bootstrap_database(opts, logger, *args, **kwargs):
 
     if opts.database == 'sqlite':
         db_bootstrap = SQLiteDatabaseBootstrap(opts=opts, logger=logger)
-    elif opts.database == 'posgresql':
+    elif opts.database == 'postgresql':
         db_bootstrap = PostgreSQLDatabaseBootstrap(opts=opts, logger=logger)
-
-    if not db_bootstrap:
+    else:
         raise ValueError('Unknown database engine')
 
     if db_bootstrap.prepare():
@@ -105,6 +104,12 @@ class DatabaseBootstrap(object):
                     return False
         return True
 
+    def move_imported_data(self, temp_dir, channel_dir):
+        self.logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
+        shutil.copytree(temp_dir, channel_dir)
+
+    #  Private base class helper methods
+
     def __channel_already_imported(self, channel_dir):
         return os.path.exists(channel_dir)
 
@@ -145,10 +150,8 @@ class SQLiteDatabaseBootstrap(with_metaclass(ABCMeta, DatabaseBootstrap)):
         """
         Start the SQLite bootstrap process
         """
-        if self.__copy_clean_db(self.temp_dir):
-            if self.import_channels(self.channel_mapping):
-                self.logger.info('Copying bootstrapped data from {} to {}'.format(self.temp_dir, self.channel_dir))
-                shutil.copytree(self.temp_dir, self.channel_dir)
+        if self.__copy_clean_db(self.temp_dir) and self.import_channels(self.channel_mapping):
+            self.move_imported_data(self.temp_dir, self.channel_dir)
 
     def __copy_clean_db(self, dest):
         """
@@ -171,7 +174,30 @@ class SQLiteDatabaseBootstrap(with_metaclass(ABCMeta, DatabaseBootstrap)):
 class PostgreSQLDatabaseBootstrap(with_metaclass(ABCMeta, DatabaseBootstrap)):
 
     def bootstrap(self):
-        pass
+        """
+        Start the PostgreSQL bootstrap process
+        """
+        if self.__prepare_db_connection() and self.import_channels(self.channel_mapping):
+            self.move_imported_data(self.temp_dir, self.channel_dir)
+
+            # TODO: export postgres db
+
+    def __prepare_db_connection(self):
+        try:
+            settings = config['db']['postgresql']
+        except KeyError as e:
+            self.logger.error('[db][postgresql] section missing from settings.py')
+            return False
+
+        # Set connection env vars
+        for setting, setting_value in settings.items():
+            env_var = setting.upper()
+            os.environ.setdefault(env_var, os.environ.get(env_var, setting_value))
+
+        # Set engine manually since it's not included in the settings.py to avoid duplication
+        os.environ.setdefault('KOLIBRI_DB_ENGINE', 'postgresql')
+
+        return True
 
 
 if __name__ == '__main__':

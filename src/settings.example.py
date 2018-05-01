@@ -3,8 +3,11 @@
 
 config = {
     'db': {
-        'sqlite': {
-            'db_files': ['db.sqlite3', 'db.sqlite3-shm', 'db.sqlite3-wal'],
+        'postgresql': {
+            'kolibri_db_name': '',
+            'kolibri_db_user': '',
+            'kolibri_db_password': '',
+            'kolibri_db_host': ''
         }
     },
     'channels': {
