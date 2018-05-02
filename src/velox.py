@@ -40,7 +40,7 @@ from utils import enable_log_to_stdout, get_free_tcp_port
 from utils import set_kolibri_home, fill_parse_args, manage_cli, select_cli
 
 
-class DatabaseSetup(object):
+class EnvironmentSetup(object):
 
     """
     Main object centralizing all the needed tasks to setup the environment,
@@ -52,6 +52,8 @@ class DatabaseSetup(object):
     """
 
     def __init__(self, opts, logger, db_name=''):
+        # pylint: disable=too-many-instance-attributes
+        # They all are reasonable in this case.
         self.django_settings = 'kolibri.deployment.default.settings.base'
         self.opts = opts
         self.logger = logger
@@ -194,12 +196,12 @@ if __name__ == '__main__':
     with FileLock('{}.lock'.format(log_name)):
         try:
             logger.info('Tests setup script started')
-            db = DatabaseSetup(opts, logger)
-            db.do_setup()
-            if not db.start():
-                db.do_clean(True)
+            es = EnvironmentSetup(opts, logger)
+            es.do_setup()
+            if not es.start():
+                es.do_clean(True)
 
-            for test in db.load_tests():
+            for test in es.load_tests():
                 # Each test is done three times
                 tests_durations[test.__name__] = []
                 for i in range(3):
@@ -209,13 +211,13 @@ if __name__ == '__main__':
                         test.run()
                     except AttributeError:
                         logger.error('{} is not a correct module to run tests'.format(test.__name__))
-                        db.do_clean(True)
+                        es.do_clean(True)
                     except Exception as e:
                         print(e.message)
                         logger.error('Error {message} when trying to run {test_name}'.format(message=e.message,
                                                                                              test_name=test.__name__))
                     tests_durations[test.__name__].append(calculate_duration(test_start))
-            db.do_clean()
+            es.do_clean()
             duration = calculate_duration(start_date)
             logger.info('::Duration {}'.format(duration))
             logger.info('Tests finished')
