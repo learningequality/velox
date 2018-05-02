@@ -27,8 +27,6 @@ def bootstrap_database(opts, logger, *args, **kwargs):
         db_bootstrap = SQLiteDatabaseBootstrap(opts=opts, logger=logger)
     elif opts.database == 'postgresql':
         db_bootstrap = PostgreSQLDatabaseBootstrap(opts=opts, logger=logger)
-    else:
-        raise ValueError('Unknown database engine')
 
     if db_bootstrap.prepare():
         db_bootstrap.bootstrap()

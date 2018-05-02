@@ -138,7 +138,8 @@ def get_parse_args_definitions(wanted):
         ],
         'database': [
             '-d', '--database', {
-                'required': False, 'default': 'sqlite', 'help': 'Database type: sqlite or posgresql'
+                'required': False, 'default': 'sqlite', 'choices': ['sqlite', 'postgresql'],
+                'help': 'Database type: sqlite or posgresql'
             }
         ],
         'channel': [
@@ -163,6 +164,11 @@ def get_parse_args_definitions(wanted):
         'test': [
             '-t', '--test', {
                 'required': False, 'default': 'all', 'help': 'Name of the test to be run (or "all" to run them all)'
+            }
+        ],
+        'iterations': [
+            '-i', '--iterations', {
+                'required': False, 'type': int, 'default': 3, 'help': 'Number of times each test will be run'
             }
         ]
     }

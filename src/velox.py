@@ -188,7 +188,7 @@ class EnvironmentSetup(object):
 if __name__ == '__main__':
     start_date = datetime.utcnow()
     wanted_args = ['kolibri_dev', 'kolibri_venv', 'kolibri_exec', 'database', 'channel',
-                   'learners', 'classrooms', 'test']
+                   'iterations', 'learners', 'classrooms', 'test']
     opts = fill_parse_args(wanted=wanted_args, description='Velox setup script')
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)
@@ -204,7 +204,7 @@ if __name__ == '__main__':
             for test in es.load_tests():
                 # Each test is done three times
                 tests_durations[test.__name__] = []
-                for i in range(3):
+                for i in range(opts.iterations):
                     test_start = datetime.utcnow()
                     logger.info('{n} - Running test {test_name}'.format(n=i + 1, test_name=test.__name__))
                     try:

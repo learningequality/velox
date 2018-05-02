@@ -15,6 +15,7 @@ import time
 def run():
     random.seed()
     for _ in range(random.randrange(5)):
+
         print("testing")
         time.sleep(random.randrange(4))
 
