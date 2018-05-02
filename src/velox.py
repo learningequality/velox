@@ -211,7 +211,7 @@ if __name__ == '__main__':
                         logger.error('{} is not a correct module to run tests'.format(test.__name__))
                         db.do_clean(True)
                     except Exception as e:
-                        print (e.message)
+                        print(e.message)
                         logger.error('Error {message} when trying to run {test_name}'.format(message=e.message,
                                                                                              test_name=test.__name__))
                     tests_durations[test.__name__].append(calculate_duration(test_start))
