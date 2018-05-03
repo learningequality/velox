@@ -39,6 +39,7 @@ class DatabaseBootstrap(object):
         self.opts = opts or kwargs.get('opts')
         self.logger = logger or kwargs.get('logger')
         self.channel_mapping = self.opts.channel
+        self.db_name = self.get_db_name()
         super(DatabaseBootstrap, self).__init__()
 
     """
@@ -58,6 +59,9 @@ class DatabaseBootstrap(object):
         return True
 
     def bootstrap(self):
+        raise NotImplementedError
+
+    def get_db_name(self):
         raise NotImplementedError
 
     """
@@ -99,14 +103,25 @@ class DatabaseBootstrap(object):
                     return False
         return True
 
-    def move_imported_data(self, temp_dir, channel_dir):
-        self.logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
-        shutil.copytree(temp_dir, channel_dir)
+    def copy_imported_content(self, temp_dir, channel_dir):
+        try:
+            shutil.copytree(temp_dir, channel_dir)
+            self.logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
+        except FileExistsError as e:
+            self.logger.info('Data already exists, skipping')
+
+    def copy_imported_db(self, temp_dir, channel_dir):
+        db_path_orig = os.path.join(temp_dir, self.db_name)
+        db_path_dest = os.path.join(channel_dir, self.db_name)
+
+        shutil.copyfile(db_path_orig, db_path_dest)
+        self.logger.info('Copying bootstrapped db from {} to {}'.format(db_path_orig, db_path_dest))
 
     #  Private base class helper methods
 
     def __channel_already_imported(self, channel_dir):
-        return os.path.exists(channel_dir)
+        db_path = os.path.join(channel_dir, self.db_name)
+        return os.path.exists(channel_dir) and os.path.exists(db_path)
 
     def __get_channel_dir(self, data_dir, channel_mapping):
         return os.path.join(data_dir, channel_mapping)
@@ -146,15 +161,18 @@ class SQLiteDatabaseBootstrap(DatabaseBootstrap):
         Start the SQLite bootstrap process
         """
         if self.__copy_clean_db(self.temp_dir) and self.import_channels(self.channel_mapping):
-            self.move_imported_data(self.temp_dir, self.channel_dir)
+            self.copy_imported_content(self.temp_dir, self.channel_dir)
+            self.copy_imported_db(self.temp_dir, self.channel_dir)
+
+    def get_db_name(self):
+        return 'db.sqlite3'
 
     def __copy_clean_db(self, dest):
         """
         Copy the previously prepared testing database to the kolibri_home directory
         """
-        db_name = 'db.sqlite3'
-        clean_db_path = os.path.join('data', db_name)
-        dest_path = os.path.join(dest, db_name)
+        clean_db_path = os.path.join('data', self.db_name)
+        dest_path = os.path.join(dest, self.db_name)
 
         shutil.copyfile(clean_db_path, dest_path)
 
@@ -173,8 +191,12 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
         Start the PostgreSQL bootstrap process
         """
         if self.__prepare_db_connection() and self.import_channels(self.channel_mapping):
-            self.move_imported_data(self.temp_dir, self.channel_dir)
+            self.copy_imported_content(self.temp_dir, self.channel_dir)
             self.__dump_db()
+            self.copy_imported_db(self.temp_dir, self.channel_dir)
+
+    def get_db_name(self):
+        return '{}.sql'.format(self.channel_mapping)
 
     def __prepare_db_connection(self):
         env_vars = ['KOLIBRI_DB_NAME', 'KOLIBRI_DB_USER', 'KOLIBRI_DB_PASSWORD', 'KOLIBRI_DB_HOST']
@@ -195,8 +217,7 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
         return True
 
     def __dump_db(self):
-        dump_name = '{}.sql'.format(self.channel_mapping)
-        dump_path = os.path.join(self.channel_dir, dump_name)
+        dump_path = os.path.join(self.temp_dir, self.db_name)
         dump_cmd = ['pg_dump',
                     '-U', os.environ.get('KOLIBRI_DB_USER'),
                     '-h', os.environ.get('KOLIBRI_DB_HOST') or 'localhost',
@@ -211,7 +232,7 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
             self.logger.error('Error trying to dump Postgres database')
             return False
 
-        self.logger.info('Postgres database dump created: {}'.format(dump_name))
+        self.logger.info('Postgres database dump created: {}'.format(self.db_name))
         return True
 
 
