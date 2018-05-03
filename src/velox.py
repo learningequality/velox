@@ -10,6 +10,9 @@ Having kolibri installed in the system:
     python src/velox.py -c video
 From development environment:
     python src/velox.py -c video -kv /datos/le/kolibri/venv/  -kd /datos/le/kolibri -l 10 -s 2
+    or
+    python src/velox.py -c exercise -kv /datos/le/kolibri/venv/  -kd /datos/le/kolibri -l 10 -s 2 -d postgresql
+    to use postgresql database
 
 IMPORTANT NOTES:
     * Tests are fetched from the plugins directory.
@@ -54,7 +57,6 @@ class EnvironmentSetup(object):
     def __init__(self, opts, logger, db_name=''):
         # pylint: disable=too-many-instance-attributes
         # They all are reasonable in this case.
-        self.django_settings = 'kolibri.deployment.default.settings.base'
         self.opts = opts
         self.logger = logger
         temp_dir = tempfile.mkdtemp()
@@ -63,9 +65,7 @@ class EnvironmentSetup(object):
         self.env = os.environ.copy()
         self.env["KOLIBRI_HOME"] = self.working_dir
         self.env["DJANGO_SETTINGS_MODULE"] = 'kolibri.deployment.default.settings.base'
-        self.env["POSTGRES_DB"] = db_name
         self.db_path = os.path.join(self.env['KOLIBRI_HOME'], "db.sqlite3")
-        self.db_alias = uuid.uuid4().hex
         self.port = get_free_tcp_port()
         self.base_url = "http://127.0.0.1:{}/".format(self.port)
         self._instance = None
@@ -80,6 +80,19 @@ class EnvironmentSetup(object):
         self.logger.info('Copying bootstrapped data from {} to {}'.format(channel_dir, self.working_dir))
         shutil.copytree(channel_dir, self.working_dir)
         set_kolibri_home(self.working_dir, self.logger)
+        if opts.database == 'postgresql':
+            self.env["POSTGRES_DB"] = os.environ.get('KOLIBRI_DB_NAME')
+            self.env["KOLIBRI_DB_ENGINE"] = 'postgresql'
+            self.__import_dump()
+
+    def __import_dump(self):
+        dump_path = os.path.join(self.working_dir, '{}.sql'.format(self.opts.channel))
+        insert_cmd = ['psql',
+                      '-h', os.environ.get('KOLIBRI_DB_HOST'),
+                      '-U', os.environ.get('KOLIBRI_DB_USER'),
+                      '-d', os.environ.get('KOLIBRI_DB_NAME'),
+                      '-f', dump_path]
+        p = subprocess.Popen(insert_cmd, env={'PGPASSWORD': os.environ.get('KOLIBRI_DB_PASSWORD')}).wait()
 
     def __generate_user_data(self):
         """
@@ -117,7 +130,7 @@ class EnvironmentSetup(object):
         """
         call_args = manage_cli(self.opts, *args)
         try:
-            subprocess.Popen(call_args, env=self.env)
+            subprocess.Popen(call_args, env=self.env).wait()
         except Exception as e:
             self.logger.error(e.message)
 
@@ -198,7 +211,6 @@ if __name__ == '__main__':
             es.do_setup()
             if not es.start():
                 es.do_clean(True)
-
             for test in es.load_tests():
                 # Each test is done three times
                 tests_durations[test.__name__] = []
