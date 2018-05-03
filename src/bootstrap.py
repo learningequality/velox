@@ -177,16 +177,17 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
             self.__dump_db()
 
     def __prepare_db_connection(self):
-        try:
-            settings = config['db']['postgresql']
-        except KeyError as e:
-            self.logger.error('[db][postgresql] section missing from settings.py')
-            return False
+        env_vars = ['KOLIBRI_DB_NAME', 'KOLIBRI_DB_USER', 'KOLIBRI_DB_PASSWORD', 'KOLIBRI_DB_HOST']
 
-        # Set connection env vars
-        for setting, setting_value in settings.items():
-            env_var = setting.upper()
-            os.environ.setdefault(env_var, os.environ.get(env_var, setting_value))
+        for env_var in env_vars:
+            if not os.environ.get(env_var):
+                try:
+                    setting = config['db']['postgresql'][env_var.lower()]
+                    os.environ.setdefault(env_var, setting)
+                except KeyError as e:
+                    self.logger.error('PostgreSQL setting: {} or env var: {} is missing'.format(
+                        env_var.lower(), env_var))
+                    return False
 
         # Set engine manually since it's not included in the settings.py to avoid duplication
         os.environ.setdefault('KOLIBRI_DB_ENGINE', 'postgresql')
