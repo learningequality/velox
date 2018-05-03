@@ -107,7 +107,7 @@ class DatabaseBootstrap(object):
         try:
             shutil.copytree(temp_dir, channel_dir)
             self.logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
-        except FileExistsError as e:
+        except OSError as e:
             self.logger.info('Data already exists, skipping')
 
     def copy_imported_db(self, temp_dir, channel_dir):
