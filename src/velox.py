@@ -76,9 +76,7 @@ class EnvironmentSetup(object):
         Kolibri working environment
         """
         channel_dir = os.path.join('data', 'bootstrap', self.opts.channel)
-        if not os.path.exists(channel_dir):
-            self.logger.error('Channel data does not exist. Running bootstrap')
-            bootstrap_database(self.opts, self.logger)
+        bootstrap_database(self.opts, self.logger)
         self.logger.info('Copying bootstrapped data from {} to {}'.format(channel_dir, self.working_dir))
         shutil.copytree(channel_dir, self.working_dir)
         set_kolibri_home(self.working_dir, self.logger)
