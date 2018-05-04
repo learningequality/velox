@@ -30,7 +30,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import uuid
 
 from datetime import datetime
 from filelock import FileLock
@@ -41,6 +40,7 @@ from requests.exceptions import RequestException
 from utils import calculate_duration
 from utils import enable_log_to_stdout, get_free_tcp_port
 from utils import set_kolibri_home, get_config_args, manage_cli, select_cli
+from utils import show_error
 
 
 class EnvironmentSetup(object):
@@ -92,7 +92,7 @@ class EnvironmentSetup(object):
                       '-U', os.environ.get('KOLIBRI_DB_USER'),
                       '-d', os.environ.get('KOLIBRI_DB_NAME'),
                       '-f', dump_path]
-        p = subprocess.Popen(insert_cmd, env={'PGPASSWORD': os.environ.get('KOLIBRI_DB_PASSWORD')}).wait()
+        subprocess.Popen(insert_cmd, env={'PGPASSWORD': os.environ.get('KOLIBRI_DB_PASSWORD')}).wait()
 
     def __generate_user_data(self):
         """
@@ -131,8 +131,8 @@ class EnvironmentSetup(object):
         call_args = manage_cli(self.opts, *args)
         try:
             subprocess.Popen(call_args, env=self.env).wait()
-        except Exception as e:
-            self.logger.error(e.message)
+        except Exception as error:
+            show_error(self.logger, error)
 
     def start(self):
         """
@@ -222,10 +222,8 @@ if __name__ == '__main__':
                     except AttributeError:
                         logger.error('{} is not a correct module to run tests'.format(test.__name__))
                         es.do_clean(True)
-                    except Exception as e:
-                        print(e.message)
-                        logger.error('Error {message} when trying to run {test_name}'.format(message=e.message,
-                                                                                             test_name=test.__name__))
+                    except Exception as error:
+                        show_error(logger, error, 'when trying to run {}'.format(test.__name__))
                     tests_durations[test.__name__].append(calculate_duration(test_start))
             es.do_clean()
             duration = calculate_duration(start_date)
@@ -235,5 +233,5 @@ if __name__ == '__main__':
                 logger.info('These are the tests durations:')
                 logger.info(tests_durations)
 
-        except Exception as e:
-            logger.exception(e.message)
+        except Exception as error:
+            show_error(logger, error)

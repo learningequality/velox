@@ -14,7 +14,7 @@ from collections import namedtuple
 from datetime import datetime
 
 __all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_kolibri_venv', 'get_free_tcp_port',
-           'manage_cli', 'set_kolibri_home', 'select_cli']
+           'manage_cli', 'set_kolibri_home', 'select_cli', 'show_error']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -151,10 +151,10 @@ def get_config_args(wanted, **kwargs):
     # Try to override with args from the settings.py file
     try:
         from settings import config
-    except ImportError as e:
+    except ImportError:
         config = None
 
-    if config and 'args' in config and type(config['args']) == dict:
+    if config and 'args' in config and isinstance(config['args'], dict):
         args.update({k: v if v else args[k] for k, v in config['args'].items()})
 
     # Try to override with args from the command line args
@@ -197,6 +197,13 @@ def fill_parse_args(wanted, **kwargs):
         arg_short, arg_long, arg_opts = arg_definition
         parser.add_argument(arg_short, arg_long, **arg_opts)
     return parser.parse_args()
+
+
+def show_error(logger, error, message=''):
+    error_text = str(error) if not hasattr(error, 'message') else error.message
+    if message:
+        error_text = '{} {}'.format(error_text, message)
+    logger.error(error_text)
 
 
 def get_parse_args_definitions(wanted):

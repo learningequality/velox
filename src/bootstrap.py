@@ -104,7 +104,7 @@ class DatabaseBootstrap(object):
         try:
             shutil.copytree(temp_dir, channel_dir)
             self.logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
-        except OSError as e:
+        except OSError:
             self.logger.info('Data already exists, skipping')
 
     def copy_imported_db(self, temp_dir, channel_dir):
@@ -204,7 +204,7 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
                 try:
                     setting = config['db']['postgresql'][config_setting]
                     os.environ.setdefault(env_var, setting)
-                except KeyError as e:
+                except KeyError:
                     self.logger.error('PostgreSQL setting: {} or env var: {} is missing'.format(
                         config_setting, env_var))
                     return False
