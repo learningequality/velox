@@ -10,11 +10,10 @@ import os
 import socket
 import sys
 
-from collections import namedtuple
 from datetime import datetime
 
-__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_args', 'get_free_tcp_port',
-           'manage_cli', 'set_kolibri_home', 'select_cli', 'show_error']
+__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts', 'get_free_tcp_port',
+           'manage_cli', 'prepare_postgresql_connection', 'set_kolibri_home', 'select_cli', 'show_error']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -119,37 +118,80 @@ def calculate_duration(start):
     return duration
 
 
-def get_config_args(wanted, **kwargs):
+def show_error(logger, error, message=''):
+    error_text = str(error) if not hasattr(error, 'message') else error.message
+    if message:
+        error_text = '{} {}'.format(error_text, message)
+    logger.error(error_text)
+
+
+def prepare_postgresql_connection(opts, logger):
+    opts_map = (('db_postgresql_name', 'KOLIBRI_DB_NAME'),
+                ('db_postgresql_user', 'KOLIBRI_DB_USER'),
+                ('db_postgresql_password', 'KOLIBRI_DB_PASSWORD'),
+                ('db_postgresql_host', 'KOLIBRI_DB_HOST'))
+
+    for opt_key, env_var in opts_map:
+        opt_value = getattr(opts, opt_key, None)
+        if opt_value:
+            os.environ.setdefault(env_var, opt_value)
+        else:
+            logger.error('PostgreSQL setting: {} or env var: {} is missing'.format(
+                         opt_key, env_var))
+            return False
+
+    # Set the engine manually
+    os.environ.setdefault('KOLIBRI_DB_ENGINE', 'postgresql')
+
+    return True
+
+
+def get_config_opts(wanted, **kwargs):
     """
-    Returns the args dictionary by taking into account the following
-    prioritization order, from higher to lower:
+    Returns the `argparse.Namespace` object by taking into account
+    the following prioritization order, from higher to lower:
     - command line arguments
     - settings.py file arguments, if it exists
-    - defautls defined in this utils module
+    - defaults defined in this utils module
     """
-
-    # Get command line arguments with the argparse module
-    cmd_args = fill_parse_args(wanted, **kwargs)
-
-    # Set default args
-    args = get_default_args()
-
-    # Try to override with args from the settings.py file
     try:
         from settings import config
     except ImportError:
         config = None
 
-    if config and 'args' in config and isinstance(config['args'], dict):
-        args.update({k: v if v else args[k] for k, v in config['args'].items()})
+    # Get command line arguments with the argparse module
+    opts = fill_parse_args(wanted, **kwargs)
+    args_definitions = get_parse_args_definitions()
 
-    # Try to override with args from the command line args
-    if cmd_args and isinstance(cmd_args, argparse.Namespace):
-        args.update({k: v if v else args[k] for k, v in vars(cmd_args).items()})
+    # We assume that all the options are listed in the `get_default_args` function
+    for opt_key, default_value in get_default_args().items():
+        # Command line arguments have the highest priority
+        if opt_key not in opts or not getattr(opts, opt_key, None):
+            # Try to get options from the config
+            if config:
+                try:
+                    setattr(opts, opt_key, config[opt_key])
+                except KeyError:
+                    pass
 
-    # TODO: check final dict values against choices properties of the get_parse_args_definitions
+            # If opt is still not set, assign default value
+            if not getattr(opts, opt_key, None):
+                setattr(opts, opt_key, default_value)
 
-    return namedtuple('ConfigOpts', args.keys())(**args)
+        # Verify values against args_definitions choices
+        if opt_key in args_definitions:
+            try:
+                # Here we're assuming the position of the args configuration dict
+                # which might be pushing it a bit - fill_parse_args assumes the same
+                args_conf = args_definitions[opt_key][2]
+            except KeyError as e:
+                args_conf = None
+
+            if args_conf and 'choices' in args_conf and getattr(opts, opt_key) not in args_conf['choices']:
+                raise ValueError('{} is expected to be one of [{}]'.format(
+                    opt_key, ', '.join(args_conf['choices'])))
+
+    return opts
 
 
 def get_default_args():
@@ -163,6 +205,10 @@ def get_default_args():
         'classrooms': 1,
         'test': 'all',
         'iterations': 3,
+        'db_postgresql_name': os.environ.get('KOLIBRI_DB_NAME', ''),
+        'db_postgresql_user': os.environ.get('KOLIBRI_DB_USER', ''),
+        'db_postgresql_password': os.environ.get('KOLIBRI_DB_PASSWORD', ''),
+        'db_postgresql_host': os.environ.get('KOLIBRI_DB_HOST', '')
     }
 
 
@@ -185,14 +231,7 @@ def fill_parse_args(wanted, **kwargs):
     return parser.parse_args()
 
 
-def show_error(logger, error, message=''):
-    error_text = str(error) if not hasattr(error, 'message') else error.message
-    if message:
-        error_text = '{} {}'.format(error_text, message)
-    logger.error(error_text)
-
-
-def get_parse_args_definitions(wanted):
+def get_parse_args_definitions(wanted=None):
     """
     Parse the args the script neeeds
     :param: wanted: list of args the application will use
@@ -250,4 +289,7 @@ def get_parse_args_definitions(wanted):
         ]
     }
 
-    return dict((k, definitions[k]) for k in wanted if k in definitions)
+    if wanted:
+        return dict((k, definitions[k]) for k in wanted if k in definitions)
+
+    return definitions

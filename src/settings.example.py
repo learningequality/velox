@@ -2,25 +2,19 @@
 # -*- coding: utf-8 -*-
 
 config = {
-    'db': {
-        'postgresql': {
-            'name': '',
-            'user': '',
-            'password': '',
-            'host': '',
-        }
-    },
-    'args': {
-        'kolibri_dev': '',
-        'kolibri_venv': '',
-        'kolibri_exec': '',
-        'database': '',
-        'channel': '',
-        'learners': 0,
-        'classrooms': 0,
-        'test': '',
-        'iterations': 0,
-    },
+    'kolibri_dev': '',
+    'kolibri_venv': '',
+    'kolibri_exec': '',
+    'database': '',
+    'channel': '',
+    'learners': 0,
+    'classrooms': 0,
+    'test': '',
+    'iterations': 0,
+    'db_postgresql_name': '',
+    'db_postgresql_user': '',
+    'db_postgresql_password': '',
+    'db_postgresql_host': '',
     'channel_mappings': {
         'no': [],
         'large': [
