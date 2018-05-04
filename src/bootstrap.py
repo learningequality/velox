@@ -15,8 +15,11 @@ import tempfile
 from datetime import datetime
 
 from filelock import FileLock
-from settings import config
-from utils import enable_log_to_stdout, get_config_args, manage_cli, set_kolibri_home
+try:
+    from settings import config
+except ImportError:
+    config = None
+from utils import enable_log_to_stdout, get_config_opts, manage_cli, set_kolibri_home, prepare_postgresql_connection
 
 
 def bootstrap_database(opts, logger, *args, **kwargs):
@@ -105,7 +108,7 @@ class DatabaseBootstrap(object):
             shutil.copytree(temp_dir, channel_dir)
             self.logger.info('Copying bootstrapped data from {} to {}'.format(temp_dir, channel_dir))
         except OSError:
-            self.logger.info('Data already exists, skipping')
+            self.logger.info('Content data already exists, skipping')
 
     def copy_imported_db(self, temp_dir, channel_dir):
         db_path_orig = os.path.join(temp_dir, self.db_name)
@@ -187,32 +190,13 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
         """
         Start the PostgreSQL bootstrap process
         """
-        if self.__prepare_db_connection() and self.import_channels(self.channel_mapping):
+        if prepare_postgresql_connection(self.opts, self.logger) and self.import_channels(self.channel_mapping):
             self.copy_imported_content(self.temp_dir, self.channel_dir)
             self.__dump_db()
             self.copy_imported_db(self.temp_dir, self.channel_dir)
 
     def get_db_name(self):
         return '{}.sql'.format(self.channel_mapping)
-
-    def __prepare_db_connection(self):
-        env_vars = ['KOLIBRI_DB_NAME', 'KOLIBRI_DB_USER', 'KOLIBRI_DB_PASSWORD', 'KOLIBRI_DB_HOST']
-
-        for env_var in env_vars:
-            config_setting = env_var.replace('KOLIBRI_DB_', '').lower()
-            if not os.environ.get(env_var):
-                try:
-                    setting = config['db']['postgresql'][config_setting]
-                    os.environ.setdefault(env_var, setting)
-                except KeyError:
-                    self.logger.error('PostgreSQL setting: {} or env var: {} is missing'.format(
-                        config_setting, env_var))
-                    return False
-
-        # Set engine manually since it's not included in the settings.py to avoid duplication
-        os.environ.setdefault('KOLIBRI_DB_ENGINE', 'postgresql')
-
-        return True
 
     def __dump_db(self):
         dump_path = os.path.join(self.temp_dir, self.db_name)
@@ -238,7 +222,7 @@ if __name__ == '__main__':
     start_time = datetime.utcnow()
 
     wanted_args = ['kolibri_dev', 'kolibri_venv', 'kolibri_exec', 'database', 'channel']
-    opts = get_config_args(wanted=wanted_args, description='Velox bootstrap script')
+    opts = get_config_opts(wanted=wanted_args, description='Velox bootstrap script')
 
     log_name = 'bootstrap_tests'
     logger = enable_log_to_stdout(log_name)

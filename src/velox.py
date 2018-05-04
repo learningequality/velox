@@ -39,7 +39,7 @@ from bootstrap import bootstrap_database
 from requests.exceptions import RequestException
 from utils import calculate_duration
 from utils import enable_log_to_stdout, get_free_tcp_port
-from utils import set_kolibri_home, get_config_args, manage_cli, select_cli
+from utils import set_kolibri_home, get_config_opts, manage_cli, select_cli, prepare_postgresql_connection
 from utils import show_error
 
 
@@ -81,8 +81,7 @@ class EnvironmentSetup(object):
         shutil.copytree(channel_dir, self.working_dir)
         set_kolibri_home(self.working_dir, self.logger)
         if opts.database == 'postgresql':
-            self.env["POSTGRES_DB"] = os.environ.get('KOLIBRI_DB_NAME')
-            self.env["KOLIBRI_DB_ENGINE"] = 'postgresql'
+            prepare_postgresql_connection(self.opts, self.logger)
             self.__import_dump()
 
     def __import_dump(self):
@@ -200,7 +199,7 @@ if __name__ == '__main__':
     start_date = datetime.utcnow()
     wanted_args = ['kolibri_dev', 'kolibri_venv', 'kolibri_exec', 'database', 'channel',
                    'iterations', 'learners', 'classrooms', 'test']
-    opts = get_config_args(wanted=wanted_args, description='Velox setup script')
+    opts = get_config_opts(wanted=wanted_args, description='Velox setup script')
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)
     tests_durations = {}
