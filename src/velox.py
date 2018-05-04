@@ -54,7 +54,7 @@ class EnvironmentSetup(object):
     :param: db_name: In case of using Postgresql, name of the db for Kolibri
     """
 
-    def __init__(self, opts, logger, db_name=''):
+    def __init__(self, opts, logger):
         # pylint: disable=too-many-instance-attributes
         # They all are reasonable in this case.
         self.opts = opts
