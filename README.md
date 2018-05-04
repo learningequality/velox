@@ -4,7 +4,7 @@
 # Velox
 
 ## What is Velox?
-Velox is an extension library for the [Kolibri](https://github.com/learningequality/kolibri) project with a purpose to complete Kolibri by allowing setting up reproducable tests to simulate various use-case scenarios and measure their performance.
+Velox is an extension library for the [Kolibri](https://github.com/learningequality/kolibri) project with a purpose to complete Kolibri by allowing setting up reproducible tests to simulate various use-case scenarios and measure their performance.
 
 ## Installing Velox
 The project is being actively developed, which means that you may run into potential issues and that you will most probably have to set up a few things before being able to successfully run Velox in your environment.
