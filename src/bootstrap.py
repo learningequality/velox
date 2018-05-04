@@ -15,14 +15,11 @@ import tempfile
 from datetime import datetime
 
 from filelock import FileLock
-from utils import enable_log_to_stdout, fill_parse_args, manage_cli, set_kolibri_home
 from settings import config
+from utils import enable_log_to_stdout, get_config_args, manage_cli, set_kolibri_home
 
 
 def bootstrap_database(opts, logger, *args, **kwargs):
-    if not opts.database:
-        raise ValueError('database engine argument is required')
-
     if opts.database == 'sqlite':
         db_bootstrap = SQLiteDatabaseBootstrap(opts=opts, logger=logger)
     elif opts.database == 'postgresql':
@@ -83,7 +80,7 @@ class DatabaseBootstrap(object):
                 - `[python_exec] [kolibri_module] manage importcontent network [channel_id]`
         """
         try:
-            channel_ids = config['channels']['mappings'][channel_mapping]
+            channel_ids = config['channel_mappings'][channel_mapping]
             self.logger.info('Importing {} channels for mapping: `{}`'.format(len(channel_ids), channel_mapping))
         except KeyError:
             self.logger.error('`{}` channel mapping doesn\'t exist (settings.py), stopping'.format(channel_mapping))
@@ -202,13 +199,14 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
         env_vars = ['KOLIBRI_DB_NAME', 'KOLIBRI_DB_USER', 'KOLIBRI_DB_PASSWORD', 'KOLIBRI_DB_HOST']
 
         for env_var in env_vars:
+            config_setting = env_var.replace('KOLIBRI_DB_', '').lower()
             if not os.environ.get(env_var):
                 try:
-                    setting = config['db']['postgresql'][env_var.lower()]
+                    setting = config['db']['postgresql'][config_setting]
                     os.environ.setdefault(env_var, setting)
                 except KeyError as e:
                     self.logger.error('PostgreSQL setting: {} or env var: {} is missing'.format(
-                        env_var.lower(), env_var))
+                        config_setting, env_var))
                     return False
 
         # Set engine manually since it's not included in the settings.py to avoid duplication
@@ -240,7 +238,7 @@ if __name__ == '__main__':
     start_time = datetime.utcnow()
 
     wanted_args = ['kolibri_dev', 'kolibri_venv', 'kolibri_exec', 'database', 'channel']
-    opts = fill_parse_args(wanted=wanted_args, description='Velox bootstrap script')
+    opts = get_config_args(wanted=wanted_args, description='Velox bootstrap script')
 
     log_name = 'bootstrap_tests'
     logger = enable_log_to_stdout(log_name)

@@ -10,6 +10,7 @@ import os
 import socket
 import sys
 
+from collections import namedtuple
 from datetime import datetime
 
 __all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_kolibri_venv', 'get_free_tcp_port',
@@ -95,6 +96,90 @@ def get_free_tcp_port():
     return port
 
 
+def select_cli(opts):
+    """
+    Returns the right way to call kolibri execution,
+    depending on the provided opts
+    """
+    if opts.kolibri_exec:
+        commands = [opts.kolibri_exec, ]
+    elif opts.kolibri_dev:
+        python_exec = get_kolibri_venv_python(opts)
+        kolibri_module = get_kolibri_module(opts)
+        commands = [python_exec, kolibri_module]
+    else:
+        commands = ['kolibri', ]
+    return commands
+
+
+def manage_cli(opts, *args):
+    """
+    Returns the right way to execute kolibri manage commands,
+    depending on the provided opts
+    """
+    commands = select_cli(opts)
+
+    return commands + ['manage', ] + list(args)
+
+
+def calculate_duration(start):
+    """
+    Returns the difference in seconds between start and now
+    :param: start: datetime to begin
+    :returns: Seconds between start and end
+    """
+    timing = datetime.utcnow() - start
+    duration = timing.seconds + timing.microseconds / 1000000.0
+    return duration
+
+
+def get_config_args(wanted, **kwargs):
+    """
+    Returns the args dictionary by taking into account the following
+    prioritization order, from higher to lower:
+    - command line arguments
+    - settings.py file arguments, if it exists
+    - defautls defined in this utils module
+    """
+
+    # Get command line arguments with the argparse module
+    cmd_args = fill_parse_args(wanted, **kwargs)
+
+    # Set default args
+    args = get_default_args()
+
+    # Try to override with args from the settings.py file
+    try:
+        from settings import config
+    except ImportError as e:
+        config = None
+
+    if config and 'args' in config and type(config['args']) == dict:
+        args.update({k: v if v else args[k] for k, v in config['args'].items()})
+
+    # Try to override with args from the command line args
+    if cmd_args and isinstance(cmd_args, argparse.Namespace):
+        args.update({k: v if v else args[k] for k, v in vars(cmd_args).items()})
+
+    # TODO: check final dict values against choices properties of the get_parse_args_definitions
+
+    return namedtuple('ConfigOpts', args.keys())(**args)
+
+
+def get_default_args():
+    return {
+        'kolibri_dev': '',
+        'kolibri_venv': os.path.join(os.path.expanduser('~'), os.path.join('.venvs', 'kolibri')),
+        'kolibri_exec': '',
+        'database': 'sqlite',
+        'channel': 'multiple',
+        'learners': 30,
+        'classrooms': 1,
+        'test': 'all',
+        'iterations': 3,
+    }
+
+
 def fill_parse_args(wanted, **kwargs):
     """
     Create the setup to parse args for the application scripts
@@ -138,13 +223,13 @@ def get_parse_args_definitions(wanted):
         ],
         'database': [
             '-d', '--database', {
-                'required': False, 'default': 'sqlite', 'choices': ['sqlite', 'postgresql'],
+                'required': False, 'choices': ['sqlite', 'postgresql'],
                 'help': 'Database type: sqlite or posgresql'
             }
         ],
         'channel': [
             '-c', '--channel', {
-                'required': False, 'default': 'multiple', 'choices': ['no', 'large', 'multiple', 'video', 'exercise'],
+                'required': False, 'choices': ['no', 'large', 'multiple', 'video', 'exercise'],
                 'help': 'Channels to use in Kolibri: no (no channel), large (1 large channel ~ 1Gb),\n'
                         'multiple (10 x ~30 Mb channels), video (channel with multiple videos),\n'
                         'exercise (channel with multiple exercises)'
@@ -152,62 +237,24 @@ def get_parse_args_definitions(wanted):
         ],
         'learners': [
             '-l', '--learners', {
-                'required': False, 'type': int, 'default': 30,
-                'help': 'Number of learners per classroom that will use the tests'
+                'required': False, 'type': int, 'help': 'Number of learners per classroom that will use the tests'
             }
         ],
         'classrooms': [
             '-s', '--classrooms', {
-                'required': False, 'type': int, 'default': 1, 'help': 'Number of classrooms to be created.'
+                'required': False, 'type': int, 'help': 'Number of classrooms to be created.'
             }
         ],
         'test': [
             '-t', '--test', {
-                'required': False, 'default': 'all', 'help': 'Name of the test to be run (or "all" to run them all)'
+                'required': False, 'help': 'Name of the test to be run (or "all" to run them all)'
             }
         ],
         'iterations': [
             '-i', '--iterations', {
-                'required': False, 'type': int, 'default': 3, 'help': 'Number of times each test will be run'
+                'required': False, 'type': int, 'help': 'Number of times each test will be run'
             }
         ]
     }
 
     return dict((k, definitions[k]) for k in wanted if k in definitions)
-
-
-def select_cli(opts):
-    """
-    Returns the right way to call kolibri execution,
-    depending on the provided opts
-    """
-    if opts.kolibri_exec:
-        commands = [opts.kolibri_exec, ]
-    elif opts.kolibri_dev:
-        python_exec = get_kolibri_venv_python(opts)
-        kolibri_module = get_kolibri_module(opts)
-        commands = [python_exec, kolibri_module]
-    else:
-        commands = ['kolibri', ]
-    return commands
-
-
-def manage_cli(opts, *args):
-    """
-    Returns the right way to execute kolibri manage commands,
-    depending on the provided opts
-    """
-    commands = select_cli(opts)
-
-    return commands + ['manage', ] + list(args)
-
-
-def calculate_duration(start):
-    """
-    Returns the difference in seconds between start and now
-    :param: start: datetime to begin
-    :returns: Seconds between start and end
-    """
-    timing = datetime.utcnow() - start
-    duration = timing.seconds + timing.microseconds / 1000000.0
-    return duration
