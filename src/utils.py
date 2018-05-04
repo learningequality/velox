@@ -13,7 +13,7 @@ import sys
 from collections import namedtuple
 from datetime import datetime
 
-__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_kolibri_venv', 'get_free_tcp_port',
+__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_args', 'get_free_tcp_port',
            'manage_cli', 'set_kolibri_home', 'select_cli', 'show_error']
 
 if sys.version_info < (3,):
@@ -51,30 +51,14 @@ def get_kolibri_home():
     return os.environ.get('KOLIBRI_HOME')
 
 
-def get_kolibri_venv(opts):
-    """
-    Return the path to the Kolibri virtualenv
-    """
-    if opts.kolibri_venv:
-        return opts.kolibri_venv
-    return os.path.join(os.path.expanduser('~'), os.path.join('.venvs', 'kolibri'))
-
-
-def get_kolibri_dev(opts):
-    """
-    Return the path to the Kolibri development installation
-    """
-    if opts.kolibri_dev:
-        return opts.kolibri_dev
-    return None
-
-
 def get_kolibri_module(opts):
     """
     Return the path to the kolibri module within the Kolibri developmnent installation directory
     i.e. [kolibri_dev]/kolibri
     """
-    return os.path.join(get_kolibri_dev(opts), 'kolibri')
+    if not opts.kolibri_dev:
+        raise ValueError('kolibri-dev argument is missing')
+    return os.path.join(opts.kolibri_dev, 'kolibri')
 
 
 def get_kolibri_venv_python(opts):
@@ -82,7 +66,9 @@ def get_kolibri_venv_python(opts):
     Return the path to the python executable within the Kolibri virtualenv
     i.e. [kolibri_venv]/bin/python
     """
-    return os.path.join(get_kolibri_venv(opts), 'bin', 'python')
+    if not opts.kolibri_venv:
+        raise ValueError('kolibri-venv argument is missing')
+    return os.path.join(opts.kolibri_venv, 'bin', 'python')
 
 
 def get_free_tcp_port():
