@@ -184,7 +184,7 @@ def get_config_opts(wanted, **kwargs):
                 # Here we're assuming the position of the args configuration dict
                 # which might be pushing it a bit - fill_parse_args assumes the same
                 args_conf = args_definitions[opt_key][2]
-            except KeyError as e:
+            except KeyError:
                 args_conf = None
 
             if args_conf and 'choices' in args_conf and getattr(opts, opt_key) not in args_conf['choices']:

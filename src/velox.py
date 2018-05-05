@@ -216,10 +216,13 @@ if __name__ == '__main__':
                 for i in range(opts.iterations):
                     test_start = datetime.utcnow()
                     logger.info('{n} - Running test {test_name}'.format(n=i + 1, test_name=test.__name__))
+
+                    # Actual test execution:
                     try:
-                        test.run()
+                        test.run(es.base_url, opts.learners)
                     except AttributeError:
                         logger.error('{} is not a correct module to run tests'.format(test.__name__))
+                        # Clean temp files and quit velox:
                         es.do_clean(True)
                     except Exception as error:
                         show_error(logger, error, 'when trying to run {}'.format(test.__name__))

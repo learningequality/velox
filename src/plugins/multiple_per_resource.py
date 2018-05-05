@@ -35,7 +35,7 @@ class UserBehavior(TaskSet):
 
     @task(2)
     def get_something(self):
-        self.client.get("/something")
+        self.client.get("/learn/#/recommended")
 
     @task(1)
     def get_something_else(self):
@@ -48,8 +48,8 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run():
-    launch(WebsiteUser, 3, 3)
+def run(base_url='http://kolibridemo.learningequality.org', users=3):
+    launch(WebsiteUser, base_url, users, 3)
 
 if __name__ == '__main__':
     run()
