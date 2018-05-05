@@ -188,8 +188,9 @@ class EnvironmentSetup(object):
         else:
             plugins_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plugins')
             entries = os.listdir(plugins_path)
+            blacklisted = ['__init__.py', 'test_scaffolding']
             for entry in entries:
-                if entry != '__init__.py' and entry.endswith('.py'):
+                if entry not in blacklisted and entry.endswith('.py'):
                     yield load_test(entry)
                 else:
                     continue
