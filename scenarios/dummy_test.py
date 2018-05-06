@@ -12,7 +12,7 @@ import random
 import time
 
 
-def run():
+def run(base_url='http://kolibridemo.learningequality.org', users=3):
     random.seed()
     for _ in range(random.randrange(5)):
 

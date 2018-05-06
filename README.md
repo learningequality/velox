@@ -72,6 +72,14 @@ It should be possible to run `velox` script simply by:
 
 as there are certain internal defaults defined.
 
+### Testing scenarios
+Different tests can be created. They should be placed in a directory called `scenarios`.
+This directory must exist in the directory where `velox` is launched from.
+Each test must be a python file, having at least a function with this syntax:
+`def run(base_url='http://kolibridemo.learningequality.org', users=3)`
+`velox` will load this module and will execute its `run` function to launch the tests.
+
+
 ### Configuration
 
 Command line arguments have the highest precedence, but it is also possible to enable Velox `settings` module to be able to configure settings on a more permanent basis.
