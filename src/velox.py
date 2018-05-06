@@ -15,7 +15,7 @@ From development environment:
     to use postgresql database
 
 IMPORTANT NOTES:
-    * Tests are fetched from the plugins directory.
+    * Tests are fetched from the scenarios directory.
     * Tests need to have a 'run' function that will be executed to run the test.
     * If no test is passed using the command line args all the tests in the directory will be run.
     * Every test is run three times and the execution times are logged at the end of the process.
@@ -170,24 +170,24 @@ class EnvironmentSetup(object):
         """
         If a test name is passed as an argument it returns its module.
         If not, it will return all the modules for all the tests available
-        inside the plugin directory.
+        inside the scenarios directory.
         """
         def load_test(test_name):
             """
-            Returns the module in plugins directory named test_name
-            :param: test_name: Name of test file in the plugins directory
+            Returns the module in scenarios directory named test_name
+            :param: test_name: Name of test file in the scenarios directory
             :returns: Loaded python module
             """
             if test_name.lower().endswith('.py'):
                 test_name = test_name[:-3]
-            module = import_module('plugins.{}'.format(test_name))
+            module = import_module(test_name)
             return module
-
         if self.opts.test != 'all':
             yield load_test(self.opts.test)
         else:
-            plugins_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plugins')
-            entries = os.listdir(plugins_path)
+            # plugins_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plugins')
+            scenarios_tests_path = 'scenarios'
+            entries = os.listdir(scenarios_tests_path)
             blacklisted = ['__init__.py', 'test_scaffolding']
             for entry in entries:
                 if entry not in blacklisted and entry.endswith('.py'):
@@ -204,6 +204,8 @@ if __name__ == '__main__':
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)
     tests_durations = {}
+    # add scenarios directory to the sys path:
+    sys.path.append(os.path.join(os.getcwd(), 'scenarios'))
     with FileLock('{}.lock'.format(log_name)):
         try:
             logger.info('Tests setup script started')
