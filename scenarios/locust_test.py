@@ -12,7 +12,15 @@ from __future__ import print_function, unicode_literals
 
 from locust import HttpLocust, TaskSet, task
 
-from test_scaffolding import launch
+try:
+    from test_scaffolding import launch
+except ImportError:
+    # the test is being run out of velox environment
+    # and velox package is not installed
+    import os
+    import sys
+    sys.path.append(os.path.join(os.getcwd(), 'src'))
+    from test_scaffolding import launch
 
 
 class UserBehavior(TaskSet):
