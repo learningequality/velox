@@ -13,6 +13,7 @@ from __future__ import print_function, unicode_literals
 
 import gevent
 import inspect
+import os
 
 from argparse import Namespace
 from locust.runners import LocalLocustRunner
@@ -54,6 +55,16 @@ def get_test_calling():
     calling_module = inspect.getmodulename(frame_records[1])
     return calling_module
 
+def get_or_create_output_dir():
+    """
+    Gets or creates output directory in which to store the locust reports
+    """
+    output_dir = os.path.join('output', 'locust')
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    return output_dir
+
 
 def launch(classname, base_url, n_clients, rate, timeout=600):
     """
@@ -72,7 +83,7 @@ def launch(classname, base_url, n_clients, rate, timeout=600):
         'run_time': timeout,
         'no_web': True,
         'no_reset_stats': True,
-        'csvfilebase': get_test_calling()
+        'csvfilebase': os.path.join(get_or_create_output_dir(), get_test_calling())
     })
 
     setup_logging('INFO', None)
