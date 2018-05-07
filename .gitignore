@@ -98,3 +98,4 @@ data/bootstrap/
 
 # variuos output data
 output/
+*.csv
