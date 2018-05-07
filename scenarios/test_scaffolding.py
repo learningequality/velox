@@ -64,25 +64,27 @@ def launch(classname, base_url, n_clients, rate, timeout=600):
     :param: rate: The rate per second in which clients are spawned
     :param: timeout: Stop testing after the specified amount of seconds
     """
-    options = Namespace()
-    options.host = base_url
-    options.num_clients = n_clients
-    options.hatch_rate = rate
-    options.num_requests = n_clients * 10
-    options.run_time = timeout
-    options.no_web = True
-    options.no_reset_stats = True
-    options.csvfilebase = get_test_calling()
-    print(options.csvfilebase)
+    options = Namespace(**{
+        'host': base_url,
+        'num_clients': n_clients,
+        'hatch_rate': rate,
+        'num_requests': n_clients * 10,
+        'run_time': timeout,
+        'no_web': True,
+        'no_reset_stats': True,
+        'csvfilebase': get_test_calling()
+    })
+
     setup_logging('INFO', None)
     runners.locust_runner = LocalLocustRunner([classname], options)
+
     # spawn client spawning/hatching greenlets:
     runners.locust_runner.start_hatching(wait=True)
     main_greenlet = runners.locust_runner.greenlet
     spawn_run_time_limit_greenlet(options)
+
     if options.csvfilebase:
         gevent.spawn(stats_writer, options.csvfilebase)
-
     try:
         main_greenlet.join()
         code = 0
