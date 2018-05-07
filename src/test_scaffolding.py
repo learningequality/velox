@@ -73,7 +73,7 @@ def launch(classname, base_url, n_clients, rate, timeout=600):
     options.no_web = True
     options.no_reset_stats = True
     options.csvfilebase = get_test_calling()
-    print (options.csvfilebase)
+    print(options.csvfilebase)
     setup_logging('INFO', None)
     runners.locust_runner = LocalLocustRunner([classname], options)
     # spawn client spawning/hatching greenlets:

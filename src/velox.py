@@ -63,11 +63,11 @@ class EnvironmentSetup(object):
         self.logger.info('Created temp working directory: {}'.format(temp_dir))
         self.working_dir = os.path.join(temp_dir, 'kolibri')
         self.env = os.environ.copy()
-        self.env["KOLIBRI_HOME"] = self.working_dir
-        self.env["DJANGO_SETTINGS_MODULE"] = 'kolibri.deployment.default.settings.base'
-        self.db_path = os.path.join(self.env['KOLIBRI_HOME'], "db.sqlite3")
+        self.env['KOLIBRI_HOME'] = self.working_dir
+        self.env['DJANGO_SETTINGS_MODULE'] = 'kolibri.deployment.default.settings.base'
+        self.db_path = os.path.join(self.env['KOLIBRI_HOME'], 'db.sqlite3')
         self.port = get_free_tcp_port()
-        self.base_url = "http://127.0.0.1:{}/".format(self.port)
+        self.base_url = 'http://127.0.0.1:{}/'.format(self.port)
         self._instance = None
 
     def __set_database(self):
@@ -140,15 +140,15 @@ class EnvironmentSetup(object):
         try:
             kolibri_commands = select_cli(self.opts) + ['start', '--port={}'.format(self.port), '--foreground']
             if opts.kolibri_dev:
-                self.logger.warn("Running kolibri from dev environment. Ensure you have run `yarn build` before")
+                self.logger.warn('Running kolibri from dev environment. Ensure you have run `yarn build` before')
             self._instance = subprocess.Popen(kolibri_commands, env=self.env)
             self._wait_for_server_start()
             self.logger.info('Kolibri server started and running in port {}'.format(self.port))
             return True
         except OSError:
-            self.logger.error("Kolibri not found. Tests can't continue")
+            self.logger.error('Kolibri not found. Tests can\'t continue')
         except Exception:
-            self.logger.error("Kolibri server did not start")
+            self.logger.error('Kolibri server did not start')
         return False
 
     def _wait_for_server_start(self, timeout=20):
