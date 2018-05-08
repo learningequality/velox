@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Experiment scenario 1
-Server unresponsive when multiple clients access the same resource
-Endpoints:
+Experiment scenario 2
+Server unresponsive when multiple clients access different resource
+
+Endpoints (shared between the requests):
 * /user/#/signin
 * /facility/#/classes
 * /learn/#/topics/{id} : video
@@ -11,10 +12,8 @@ Endpoints:
 * … exercises, exams, coach pages
 
 
-PENDING: Need config for velox to run this test multiple times with different velox options
-This experiment should be executed multiple times with different options ¿a yaml file passed to velox?
-
 Channels    Learners        Classrooms     Requests/s   Database
+================================================================
 No              25              2           20          sqlite
 large           25              2           20          sqlite
 video           25              2           20          sqlite
