@@ -193,7 +193,7 @@ class EnvironmentSetup(object):
             # plugins_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plugins')
             scenarios_tests_path = 'scenarios'
             entries = os.listdir(scenarios_tests_path)
-            blacklisted = ['__init__.py', 'test_scaffolding']
+            blacklisted = ['__init__.py', 'example.py']
             for entry in entries:
                 if entry not in blacklisted and entry.endswith('.py'):
                     yield load_test(entry)
