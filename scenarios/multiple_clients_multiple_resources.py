@@ -52,24 +52,30 @@ class UserBehavior(TaskSet):
         r = self.client.get("/learn/#/recommended")
         self.csrf_token = r.cookies['csrftoken']
 
-        time_token = str(time.time()).replace('.', '')[:13]
-        get_popular_url = 'api/contentnode/?popular=true&{}={}'.format(time_token, time_token)
+        get_popular_url = self.add_timestamp('api/contentnode/?popular=true')
+        print(get_popular_url)
         r = self.client.get(get_popular_url, headers={'X-CSRFToken': self.csrf_token})
         try:
-            content = json.loads(r.content)
-            self.urls = ['/learn/#/recommended/{}'.format(url['id']) for url in content]
-            import ipdb;ipdb.set_trace()
+            contents = json.loads(r.content)
+            self.urls = ['/learn/#/recommended/{}'.format(url['id']) for url in contents]
+            self.videos = [content['files'][0]['storage_url'] for content in contents if content['kind'] == 'video']
+
         except ValueError:
             #  bad response from the server
             self.urls = []
 
-    @task(1)
-    def get_something_else(self):
-        self.client.get('/learn/#/recommended')
+    def add_timestamp(self, url):
+        time_token = str(time.time()).replace('.', '')[:13]
+        return '{url}&{timestamp}={timestamp}'.format(url=url, timestamp=time_token)
 
     @task(30)
-    def load_sub_page(self):
+    def load_learn_pages(self):
         url = random.choice(self.urls)
+        self.client.get(self.add_timestamp(url))
+
+    @task(40)
+    def load_video_resources(self):
+        url = random.choice(self.videos)[1:]
         self.client.get(url)
 
 
