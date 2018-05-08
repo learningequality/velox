@@ -26,7 +26,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 # Next two lines are needed to workaround the problem caused by the
 # combination of requests bug #3831 with urllib3 bug #1104
 import gevent.monkey
-gevent.monkey.patch_all() # noqa
+gevent.monkey.patch_all()  # noqa
 
 import os
 import requests
