@@ -103,28 +103,33 @@ class UserBehavior(TaskSet):
 
     @task(30)
     def load_learn_pages(self):
-        url = random.choice(self.urls)
-        self.client.get(add_timestamp(url))
+        if self.urls:
+            url = random.choice(self.urls)
+            self.client.get(add_timestamp(url))
 
     @task(40)
     def load_video_resources(self):
-        url = random.choice(self.videos)
-        self.client.get(url)
+        if self.videos:
+            url = random.choice(self.videos)
+            self.client.get(url)
 
     @task(50)
     def load_html5_resources(self):
-        url = random.choice(self.html5)
-        self.client.get(url)
+        if self.html5:
+            url = random.choice(self.html5)
+            self.client.get(url)
 
     @task(20)
     def load_document_resources(self):
-        url = random.choice(self.documents)
-        self.client.get(url)
+        if self.documents:
+            url = random.choice(self.documents)
+            self.client.get(url)
 
     @task(30)
     def load_exercise_resources(self):
-        url = random.choice(self.exercises)
-        self.client.get(url)
+        if self.exercises:
+            url = random.choice(self.exercises)
+            self.client.get(url)
 
 
 class WebsiteUser(HttpLocust):
