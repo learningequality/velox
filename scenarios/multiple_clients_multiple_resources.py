@@ -46,7 +46,7 @@ class UserBehavior(TaskSet):
 
     def on_start(self):
         # request '/' to get the initial cookies
-        r = self.client.get('/')
+        r = self.client.get('')
         self.csrf_token = r.cookies['csrftoken']
         self.session_id = r.cookies['sessionid']
 
@@ -64,18 +64,18 @@ class UserBehavior(TaskSet):
         return r.status_code == 200
 
     def get_kolibri_usernames(self):
-        r = self.client.get('api/facilityuser')
+        r = self.client.get('api/facilityuser/')
         return [u['username'] for u in json.loads(r.content)]
 
     def index_page(self):
-        r = self.client.get('/learn/#/recommended')
+        r = self.client.get('learn/#/recommended')
 
         get_popular_url = self.add_timestamp('api/contentnode/?popular=true')
         print(get_popular_url)
         r = self.client.get(get_popular_url, headers={'X-CSRFToken': self.csrf_token})
         try:
             contents = json.loads(r.content)
-            self.urls = ['/learn/#/recommended/{}'.format(url['id']) for url in contents]
+            self.urls = ['learn/#/recommended/{}'.format(url['id']) for url in contents]
             self.videos = [content['files'][0]['storage_url'] for content in contents if content['kind'] == 'video']
 
         except ValueError:
