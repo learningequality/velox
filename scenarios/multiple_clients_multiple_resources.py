@@ -101,35 +101,32 @@ class UserBehavior(TaskSet):
             #  bad response from the server
             pass
 
+    def load_resource(self, resource, with_timestamp=False):
+        if resource:
+            url = random.choice(resource)
+            if with_timestamp:
+                url = add_timestamp(url)
+            self.client.get(url)
+
     @task(30)
     def load_learn_pages(self):
-        if self.urls:
-            url = random.choice(self.urls)
-            self.client.get(add_timestamp(url))
+        self.load_resource(self.urls, True)
 
     @task(40)
     def load_video_resources(self):
-        if self.videos:
-            url = random.choice(self.videos)
-            self.client.get(url)
+        self.load_resource(self.videos)
 
     @task(50)
     def load_html5_resources(self):
-        if self.html5:
-            url = random.choice(self.html5)
-            self.client.get(url)
+        self.load_resource(self.html5)
 
     @task(20)
     def load_document_resources(self):
-        if self.documents:
-            url = random.choice(self.documents)
-            self.client.get(url)
+        self.load_resource(self.documents)
 
     @task(30)
     def load_exercise_resources(self):
-        if self.exercises:
-            url = random.choice(self.exercises)
-            self.client.get(url)
+        self.load_resource(self.exercises)
 
 
 class WebsiteUser(HttpLocust):
@@ -139,7 +136,7 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run(base_url='http://kolibridemo.learningequality.org', users=30):
+def run(base_url='http://kolibridemo.learningequality.org', users=100):
     launch(WebsiteUser, base_url, users, 5)
 
 
