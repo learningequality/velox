@@ -42,11 +42,16 @@ except ImportError:
     from test_scaffolding import launch
 
 
-
 def add_timestamp(url):
     time_token = str(time.time()).replace('.', '')[:13]
     new_url = '{url}&{timestamp}={timestamp}'.format(url=url, timestamp=time_token)
     return new_url
+
+
+def filter_contents(contents, kind, extension):
+    resources = [content['files'] for content in contents if content['kind'] == kind]
+    filtered = [file['download_url'] for resource in resources for file in resource if file['extension'] == extension]
+    return filtered
 
 
 class UserBehavior(TaskSet):
@@ -56,7 +61,11 @@ class UserBehavior(TaskSet):
         r = self.client.get('/')
         self.csrf_token = r.cookies['csrftoken']
         self.session_id = r.cookies['sessionid']
-
+        self.urls = []
+        self.videos = []
+        self.html5 = []
+        self.documents = []
+        self.exercises = []
         self.get_content()
         if self.log_in('admin', 'admin'):
             self.kolibri_usernames = self.get_kolibri_usernames()
@@ -82,12 +91,15 @@ class UserBehavior(TaskSet):
         try:
             contents = json.loads(r.content)
             self.urls = ['/learn/#/recommended/{}'.format(url['pk']) for url in contents]
-            video_resources = [content['files'] for content in contents if content['kind'] == 'video']
-            self.videos = [file['download_url'] for resource in video_resources for file in resource if file['extension'] == 'mp4']
+            # video_resources = [content['files'] for content in contents if content['kind'] == 'video']
+            # self.videos = [file['download_url'] for resource in video_resources for file in resource if file['extension'] == 'mp4']
+            self.videos = filter_contents(contents, 'video', 'mp4')
+            self.html5 = filter_contents(contents, 'html5', 'zip')
+            self.documents = filter_contents(contents, 'document', 'pdf')
+            self.exercises = filter_contents(contents, 'exercise', 'perseus')
         except ValueError:
             #  bad response from the server
-            self.urls = []
-            self.videos = []
+            pass
 
     @task(30)
     def load_learn_pages(self):
@@ -99,6 +111,21 @@ class UserBehavior(TaskSet):
         url = random.choice(self.videos)
         self.client.get(url)
 
+    @task(50)
+    def load_html5_resources(self):
+        url = random.choice(self.html5)
+        self.client.get(url)
+
+    @task(20)
+    def load_document_resources(self):
+        url = random.choice(self.documents)
+        self.client.get(url)
+
+    @task(30)
+    def load_exercise_resources(self):
+        url = random.choice(self.exercises)
+        self.client.get(url)
+
 
 class WebsiteUser(HttpLocust):
     task_set = UserBehavior
@@ -107,8 +134,8 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run(base_url='http://kolibridemo.learningequality.org', users=3):
-    launch(WebsiteUser, base_url, users, 10)
+def run(base_url='http://kolibridemo.learningequality.org', users=30):
+    launch(WebsiteUser, base_url, users, 5)
 
 
 if __name__ == '__main__':
