@@ -72,7 +72,7 @@ class EnvironmentSetup(object):
         self.env['DJANGO_SETTINGS_MODULE'] = 'kolibri.deployment.default.settings.base'
         self.db_path = os.path.join(self.env['KOLIBRI_HOME'], 'db.sqlite3')
         self.port = get_free_tcp_port()
-        self.base_url = 'http://127.0.0.1:{}/'.format(self.port)
+        self.base_url = 'http://127.0.0.1:{}'.format(self.port)
         self._instance = None
 
     def __set_database(self):

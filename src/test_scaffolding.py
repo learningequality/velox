@@ -10,7 +10,7 @@ the tests doing:
 """
 from __future__ import print_function, unicode_literals
 
-
+import datetime
 import gevent
 import inspect
 import os
@@ -53,7 +53,9 @@ def get_test_calling():
     """
     frame_records = inspect.stack()[2]
     calling_module = inspect.getmodulename(frame_records[1])
-    return calling_module
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
+    return '{mod}_{timestamp}'.format(mod=calling_module, timestamp=timestamp)
+
 
 def get_or_create_output_dir():
     """

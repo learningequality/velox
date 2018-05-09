@@ -42,21 +42,28 @@ except ImportError:
     from test_scaffolding import launch
 
 
+
+def add_timestamp(url):
+    time_token = str(time.time()).replace('.', '')[:13]
+    new_url = '{url}&{timestamp}={timestamp}'.format(url=url, timestamp=time_token)
+    return new_url
+
+
 class UserBehavior(TaskSet):
 
     def on_start(self):
         # request '/' to get the initial cookies
-        r = self.client.get('')
+        r = self.client.get('/')
         self.csrf_token = r.cookies['csrftoken']
         self.session_id = r.cookies['sessionid']
 
+        self.get_content()
         if self.log_in('admin', 'admin'):
             self.kolibri_usernames = self.get_kolibri_usernames()
             # assume all users arrive at the index page
-            self.index_page()
 
     def log_in(self, username, password):
-        login_url = 'api/session/'
+        login_url = '/api/session/'
         data = {'username': username, 'password': password}
         headers = {'X-CSRFToken': self.csrf_token,
                    'Cookie': 'sessionid={session_id}'.format(session_id=self.session_id)}
@@ -64,36 +71,32 @@ class UserBehavior(TaskSet):
         return r.status_code == 200
 
     def get_kolibri_usernames(self):
-        r = self.client.get('api/facilityuser/')
+        r = self.client.get('/api/facilityuser/')
         return [u['username'] for u in json.loads(r.content)]
 
-    def index_page(self):
-        r = self.client.get('learn/#/recommended')
-
-        get_popular_url = self.add_timestamp('api/contentnode/?popular=true')
-        print(get_popular_url)
+    def get_content(self):
+        r = self.client.get('/learn/#/recommended')
+        get_popular_url = add_timestamp('/api/contentnode/?popular=true')
         r = self.client.get(get_popular_url, headers={'X-CSRFToken': self.csrf_token})
+
         try:
             contents = json.loads(r.content)
-            self.urls = ['learn/#/recommended/{}'.format(url['id']) for url in contents]
-            self.videos = [content['files'][0]['storage_url'] for content in contents if content['kind'] == 'video']
-
+            self.urls = ['/learn/#/recommended/{}'.format(url['pk']) for url in contents]
+            video_resources = [content['files'] for content in contents if content['kind'] == 'video']
+            self.videos = [file['download_url'] for resource in video_resources for file in resource if file['extension'] == 'mp4']
         except ValueError:
             #  bad response from the server
             self.urls = []
-
-    def add_timestamp(self, url):
-        time_token = str(time.time()).replace('.', '')[:13]
-        return '{url}&{timestamp}={timestamp}'.format(url=url, timestamp=time_token)
+            self.videos = []
 
     @task(30)
     def load_learn_pages(self):
         url = random.choice(self.urls)
-        self.client.get(self.add_timestamp(url))
+        self.client.get(add_timestamp(url))
 
     @task(40)
     def load_video_resources(self):
-        url = random.choice(self.videos)[1:]
+        url = random.choice(self.videos)
         self.client.get(url)
 
 
