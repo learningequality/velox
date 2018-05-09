@@ -5,7 +5,7 @@ Performance testing launcher script.
 Execution examples:
 Using a pex file:
     python src/velox.py -c video -ke /datos/le/kolibri-v0.9.1.pex -l 30
-    python src/velox.py -c video -ke /datos/le/kolibri-v0.9.1.pex -l 5 -t dummy_test
+    python src/velox.py -c video -ke /datos/le/kolibri-v0.9.1.pex -l 5 -t example
 Having kolibri installed in the system:
     python src/velox.py -c video
 From development environment:

@@ -45,12 +45,30 @@ except ImportError:
 class UserBehavior(TaskSet):
 
     def on_start(self):
-        # assume all users arrive at the index page
-        self.index_page()
+        # request '/' to get the initial cookies
+        r = self.client.get('/')
+        self.csrf_token = r.cookies['csrftoken']
+        self.session_id = r.cookies['sessionid']
+
+        if self.log_in('admin', 'admin'):
+            self.kolibri_usernames = self.get_kolibri_usernames()
+            # assume all users arrive at the index page
+            self.index_page()
+
+    def log_in(self, username, password):
+        login_url = 'api/session/'
+        data = {'username': username, 'password': password}
+        headers = {'X-CSRFToken': self.csrf_token,
+                   'Cookie': 'sessionid={session_id}'.format(session_id=self.session_id)}
+        r = self.client.post(login_url, data=data, headers=headers)
+        return r.status_code == 200
+
+    def get_kolibri_usernames(self):
+        r = self.client.get('api/facilityuser')
+        return [u['username'] for u in json.loads(r.content)]
 
     def index_page(self):
-        r = self.client.get("/learn/#/recommended")
-        self.csrf_token = r.cookies['csrftoken']
+        r = self.client.get('/learn/#/recommended')
 
         get_popular_url = self.add_timestamp('api/contentnode/?popular=true')
         print(get_popular_url)
