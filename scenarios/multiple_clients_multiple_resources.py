@@ -58,7 +58,7 @@ class UserBehavior(TaskSet):
 
     def on_start(self):
         # request '/' to get the initial cookies
-        r = self.client.get('/')
+        r = self.client.get('/user/')
         self.csrf_token = r.cookies['csrftoken']
         self.session_id = r.cookies['sessionid']
         self.urls = []
@@ -136,7 +136,7 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run(base_url='http://kolibridemo.learningequality.org', users=100):
+def run(base_url='http://kolibribeta.learningequality.org', users=20):
     launch(WebsiteUser, base_url, users, 5)
 
 
