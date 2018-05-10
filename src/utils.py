@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 
 __all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts', 'get_free_tcp_port',
-           'manage_cli', 'prepare_postgresql_connection', 'set_kolibri_home', 'select_cli', 'show_error']
+           'manage_cli', 'set_kolibri_home', 'select_cli', 'show_error']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -40,7 +40,7 @@ def set_kolibri_home(path, logger):
     """
     kolibri_home = path if path else os.path.join(os.path.expanduser('~'), '.kolibri')
     logger.info('Setting the KOLIBRI_HOME env to {}'.format(kolibri_home))
-    os.environ.setdefault('KOLIBRI_HOME', kolibri_home)
+    os.environ['KOLIBRI_HOME'] = kolibri_home
 
 
 def get_kolibri_home():
@@ -125,27 +125,6 @@ def show_error(logger, error, message=''):
     logger.error(error_text)
 
 
-def prepare_postgresql_connection(opts, logger):
-    opts_map = (('db_postgresql_name', 'KOLIBRI_DB_NAME'),
-                ('db_postgresql_user', 'KOLIBRI_DB_USER'),
-                ('db_postgresql_password', 'KOLIBRI_DB_PASSWORD'),
-                ('db_postgresql_host', 'KOLIBRI_DB_HOST'))
-
-    for opt_key, env_var in opts_map:
-        opt_value = getattr(opts, opt_key, None)
-        if opt_value:
-            os.environ.setdefault(env_var, opt_value)
-        else:
-            logger.error('PostgreSQL setting: {} or env var: {} is missing'.format(
-                         opt_key, env_var))
-            return False
-
-    # Set the engine manually
-    os.environ.setdefault('KOLIBRI_DB_ENGINE', 'postgresql')
-
-    return True
-
-
 def get_config_opts(wanted, **kwargs):
     """
     Returns the `argparse.Namespace` object by taking into account
@@ -208,7 +187,7 @@ def get_default_args():
         'db_postgresql_name': os.environ.get('KOLIBRI_DB_NAME', ''),
         'db_postgresql_user': os.environ.get('KOLIBRI_DB_USER', ''),
         'db_postgresql_password': os.environ.get('KOLIBRI_DB_PASSWORD', ''),
-        'db_postgresql_host': os.environ.get('KOLIBRI_DB_HOST', '')
+        'db_postgresql_host': os.environ.get('KOLIBRI_DB_HOST', '127.0.0.1')
     }
 
 

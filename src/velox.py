@@ -44,7 +44,7 @@ from bootstrap import bootstrap_database
 from requests.exceptions import RequestException
 from utils import calculate_duration
 from utils import enable_log_to_stdout, get_free_tcp_port
-from utils import set_kolibri_home, get_config_opts, manage_cli, select_cli, prepare_postgresql_connection
+from utils import set_kolibri_home, get_config_opts, manage_cli, select_cli
 from utils import show_error
 
 
@@ -67,10 +67,6 @@ class EnvironmentSetup(object):
         temp_dir = tempfile.mkdtemp()
         self.logger.info('Created temp working directory: {}'.format(temp_dir))
         self.working_dir = os.path.join(temp_dir, 'kolibri')
-        self.env = os.environ.copy()
-        self.env['KOLIBRI_HOME'] = self.working_dir
-        self.env['DJANGO_SETTINGS_MODULE'] = 'kolibri.deployment.default.settings.base'
-        self.db_path = os.path.join(self.env['KOLIBRI_HOME'], 'db.sqlite3')
         self.port = get_free_tcp_port()
         self.base_url = 'http://127.0.0.1:{}'.format(self.port)
         self._instance = None
@@ -80,23 +76,22 @@ class EnvironmentSetup(object):
         Uses the bootstraped data and database to setup a new
         Kolibri working environment
         """
-        channel_dir = os.path.join('data', 'bootstrap', self.opts.channel)
+        channel_dir = os.path.join('data', self.opts.channel)
         bootstrap_database(self.opts, self.logger)
         self.logger.info('Copying bootstrapped data from {} to {}'.format(channel_dir, self.working_dir))
         shutil.copytree(channel_dir, self.working_dir)
         set_kolibri_home(self.working_dir, self.logger)
         if opts.database == 'postgresql':
-            prepare_postgresql_connection(self.opts, self.logger)
             self.__import_dump()
 
     def __import_dump(self):
         dump_path = os.path.join(self.working_dir, '{}.sql'.format(self.opts.channel))
         insert_cmd = ['psql',
-                      '-h', os.environ.get('KOLIBRI_DB_HOST'),
-                      '-U', os.environ.get('KOLIBRI_DB_USER'),
-                      '-d', os.environ.get('KOLIBRI_DB_NAME'),
+                      '-h', self.opts.db_postgresql_host,
+                      '-U', self.opts.db_postgresql_user,
+                      '-d', self.opts.db_postgresql_name,
                       '-f', dump_path]
-        subprocess.Popen(insert_cmd, env={'PGPASSWORD': os.environ.get('KOLIBRI_DB_PASSWORD')}).wait()
+        subprocess.Popen(insert_cmd, env={'PGPASSWORD': self.opts.db_postgresql_password}).wait()
 
     def __generate_user_data(self):
         """
@@ -134,7 +129,7 @@ class EnvironmentSetup(object):
         """
         call_args = manage_cli(self.opts, *args)
         try:
-            subprocess.Popen(call_args, env=self.env).wait()
+            subprocess.Popen(call_args).wait()
         except Exception as error:
             show_error(self.logger, error)
 
@@ -146,7 +141,7 @@ class EnvironmentSetup(object):
             kolibri_commands = select_cli(self.opts) + ['start', '--port={}'.format(self.port), '--foreground']
             if opts.kolibri_dev:
                 self.logger.warn('Running kolibri from dev environment. Ensure you have run `yarn build` before')
-            self._instance = subprocess.Popen(kolibri_commands, env=self.env)
+            self._instance = subprocess.Popen(kolibri_commands)
             self._wait_for_server_start()
             self.logger.info('Kolibri server started and running in port {}'.format(self.port))
             return True
