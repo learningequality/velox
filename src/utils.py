@@ -5,7 +5,6 @@ Common function used by different parts of the application
 from __future__ import print_function, unicode_literals
 
 import argparse
-import ConfigParser
 import logging
 import os
 import socket
@@ -127,15 +126,27 @@ def show_error(logger, error, message=''):
 
 
 def write_options_ini_option(ini_path, **kwargs):
+    try:
+        import ConfigParser as configparser  # Python 2
+    except ImportError:
+        import configparser as configparser  # Python 3
+
     section = kwargs.get('section')
     option = kwargs.get('option')
     value = kwargs.get('value')
 
-    parser = ConfigParser.ConfigParser()
+    parser = configparser.ConfigParser()
     parser.optionxform = str  # necessary to preserve uppercase options
-    parser.readfp(open(ini_path))
+
+    # handle Python 2 DeprecationWarning: This method will be removed in
+    # future versions. Use 'parser.read_file()' instead
+    if sys.version_info[0] < 3:
+        parser.readfp(open(ini_path))
+    else:
+        parser.read_file(open(ini_path))
+
     parser.set(section, option, value)
-    with open(ini_path, 'wb') as ini_file:
+    with open(ini_path, 'w') as ini_file:
         parser.write(ini_file)
 
 
