@@ -155,9 +155,11 @@ class DatabaseBootstrap(object):
             self.logger.error('Error trying to remove temporary directory')
 
     def __inject_options_ini(self):
+        """
+        Injects options.ini configuration file into KOLIBRI_HOME directory
+        """
         options = {'content_dir': os.path.join(self.temp_dir, 'content')}
 
-        # set postgresql related options
         if self.opts.database == 'postgresql':
             options.update({
                 'database_engine': 'postgres',

@@ -5,6 +5,7 @@ Common function used by different parts of the application
 from __future__ import print_function, unicode_literals
 
 import argparse
+import ConfigParser
 import logging
 import os
 import socket
@@ -13,7 +14,7 @@ import sys
 from datetime import datetime
 
 __all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts', 'get_free_tcp_port',
-           'manage_cli', 'set_kolibri_home', 'select_cli', 'show_error']
+           'manage_cli', 'set_kolibri_home', 'select_cli', 'show_error', 'write_options_ini_option']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -123,6 +124,19 @@ def show_error(logger, error, message=''):
     if message:
         error_text = '{} {}'.format(error_text, message)
     logger.error(error_text)
+
+
+def write_options_ini_option(ini_path, **kwargs):
+    section = kwargs.get('section')
+    option = kwargs.get('option')
+    value = kwargs.get('value')
+
+    parser = ConfigParser.ConfigParser()
+    parser.optionxform = str  # necessary to preserve uppercase options
+    parser.readfp(open(ini_path))
+    parser.set(section, option, value)
+    with open(ini_path, 'wb') as ini_file:
+        parser.write(ini_file)
 
 
 def get_config_opts(wanted, **kwargs):

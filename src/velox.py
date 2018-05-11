@@ -44,7 +44,7 @@ from bootstrap import bootstrap_database
 from requests.exceptions import RequestException
 from utils import calculate_duration
 from utils import enable_log_to_stdout, get_free_tcp_port
-from utils import set_kolibri_home, get_config_opts, manage_cli, select_cli
+from utils import set_kolibri_home, get_config_opts, manage_cli, select_cli, write_options_ini_option
 from utils import show_error
 
 
@@ -100,11 +100,17 @@ class EnvironmentSetup(object):
         """
         self.manage('generateuserdata', '--classes', str(self.opts.classrooms), '--users', str(self.opts.learners))
 
+    def __update_options_ini_content_dir(self):
+        ini_path = os.path.join(self.working_dir, 'options.ini')
+        content_dir = os.path.join(self.working_dir, 'content')
+        write_options_ini_option(ini_path, section='Paths', option='CONTENT_DIR', value=content_dir)
+
     def do_setup(self):
         """
         Prepare all the envirnoment to be able to run Kolibri and tests
         """
         self.__set_database()
+        self.__update_options_ini_content_dir()
         self.__generate_user_data()
 
     def do_clean(self, error_exit=False):
