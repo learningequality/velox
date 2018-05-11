@@ -213,15 +213,20 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
         """
         Start the PostgreSQL bootstrap process
         """
+
+        # Import the prepared sql dump
+        self.__import_postgresql_dump()
+
         if self.import_channels(self.channel_mapping):
             self.copy_imported_content(self.temp_dir, self.channel_dir)
-            self.__dump_db()
+            self.__export_postgresql_dump()
             self.copy_imported_db(self.temp_dir, self.channel_dir)
 
     def get_db_name(self):
         return '{}.sql'.format(self.channel_mapping)
 
-    def __dump_db(self):
+    def __export_postgresql_dump(self):
+        # TODO: export this and velox `__import_dump` methods to utils module
         dump_path = os.path.join(self.temp_dir, self.db_name)
         dump_cmd = ['pg_dump',
                     '-U', self.opts.db_postgresql_user,
@@ -237,6 +242,19 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
 
         self.logger.info('Postgres database dump created: {}'.format(self.db_name))
         return True
+
+    def __import_postgresql_dump(self):
+        try:
+            dump_path = os.path.join(self.resources_dir, 'postgresql.sql')
+            insert_cmd = ['psql',
+                          '-h', self.opts.db_postgresql_host,
+                          '-U', self.opts.db_postgresql_user,
+                          '-d', self.opts.db_postgresql_name,
+                          '-f', dump_path]
+            subprocess.Popen(insert_cmd, env={'PGPASSWORD': self.opts.db_postgresql_password}).wait()
+            return True
+        except Exception:
+            return False
 
 
 if __name__ == '__main__':
