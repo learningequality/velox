@@ -44,7 +44,8 @@ from bootstrap import bootstrap_database
 from requests.exceptions import RequestException
 from utils import calculate_duration
 from utils import enable_log_to_stdout, get_free_tcp_port
-from utils import set_kolibri_home, get_config_opts, manage_cli, select_cli, write_options_ini_option
+from utils import (set_kolibri_home, get_config_opts, manage_cli, select_cli, write_options_ini_option,
+                   import_postgresql_dump)
 from utils import show_error
 
 
@@ -86,12 +87,7 @@ class EnvironmentSetup(object):
 
     def __import_dump(self):
         dump_path = os.path.join(self.working_dir, '{}.sql'.format(self.opts.channel))
-        insert_cmd = ['psql',
-                      '-h', self.opts.db_postgresql_host,
-                      '-U', self.opts.db_postgresql_user,
-                      '-d', self.opts.db_postgresql_name,
-                      '-f', dump_path]
-        subprocess.Popen(insert_cmd, env={'PGPASSWORD': self.opts.db_postgresql_password}).wait()
+        return import_postgresql_dump(dump_path, self.opts, self.logger)
 
     def __generate_user_data(self):
         """

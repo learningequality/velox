@@ -8,12 +8,14 @@ import argparse
 import logging
 import os
 import socket
+import subprocess
 import sys
 
 from datetime import datetime
 
 __all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts', 'get_free_tcp_port',
-           'manage_cli', 'set_kolibri_home', 'select_cli', 'show_error', 'write_options_ini_option']
+           'manage_cli', 'set_kolibri_home', 'select_cli', 'show_error', 'write_options_ini_option',
+           'import_postgresql_dump', 'export_postgresql_dump']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -105,6 +107,37 @@ def manage_cli(opts, *args):
     commands = select_cli(opts)
 
     return commands + ['manage', ] + list(args)
+
+
+def import_postgresql_dump(dump_path, opts, logger):
+    try:
+        insert_cmd = ['psql',
+                      '-h', opts.db_postgresql_host,
+                      '-U', opts.db_postgresql_user,
+                      '-d', opts.db_postgresql_name,
+                      '-f', dump_path]
+        subprocess.Popen(insert_cmd, env={'PGPASSWORD': opts.db_postgresql_password}).wait()
+        logger.info('Postgres database dump imported from: {}'.format(dump_path))
+        return True
+    except Exception:
+        logger.error('Error trying to dump Postgres database')
+        return False
+
+def export_postgresql_dump(dump_path, opts, logger):
+    dump_cmd = ['pg_dump',
+                '-U', opts.db_postgresql_user,
+                '-h', opts.db_postgresql_host,
+                opts.db_postgresql_name,
+                '--clean',
+                '-f', dump_path]
+    subprocess.Popen(dump_cmd, env={'PGPASSWORD': opts.db_postgresql_password}).wait()
+
+    if not os.path.exists(dump_path):
+        logger.error('Error trying to dump Postgres database')
+        return False
+
+    logger.info('Postgres database dump exported to: {}'.format(dump_path))
+    return True
 
 
 def calculate_duration(start):

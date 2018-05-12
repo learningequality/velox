@@ -20,7 +20,8 @@ try:
     from settings import config
 except ImportError:
     config = None
-from utils import enable_log_to_stdout, get_config_opts, manage_cli, set_kolibri_home
+from utils import (enable_log_to_stdout, get_config_opts, manage_cli, set_kolibri_home,
+                   import_postgresql_dump, export_postgresql_dump)
 
 
 def bootstrap_database(opts, logger, *args, **kwargs):
@@ -213,48 +214,22 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
         """
         Start the PostgreSQL bootstrap process
         """
-
-        # Import the prepared sql dump
-        self.__import_postgresql_dump()
-
-        if self.import_channels(self.channel_mapping):
+        if self.__import_dump() and self.import_channels(self.channel_mapping):
             self.copy_imported_content(self.temp_dir, self.channel_dir)
-            self.__export_postgresql_dump()
+            self.__export_dump()
             self.copy_imported_db(self.temp_dir, self.channel_dir)
 
     def get_db_name(self):
         return '{}.sql'.format(self.channel_mapping)
 
-    def __export_postgresql_dump(self):
+    def __export_dump(self):
         # TODO: export this and velox `__import_dump` methods to utils module
         dump_path = os.path.join(self.temp_dir, self.db_name)
-        dump_cmd = ['pg_dump',
-                    '-U', self.opts.db_postgresql_user,
-                    '-h', self.opts.db_postgresql_host,
-                    self.opts.db_postgresql_name,
-                    '--clean',
-                    '-f', dump_path]
-        subprocess.Popen(dump_cmd, env={'PGPASSWORD': self.opts.db_postgresql_password}).wait()
+        return export_postgresql_dump(dump_path, self.opts, self.logger)
 
-        if not os.path.exists(dump_path):
-            self.logger.error('Error trying to dump Postgres database')
-            return False
-
-        self.logger.info('Postgres database dump created: {}'.format(self.db_name))
-        return True
-
-    def __import_postgresql_dump(self):
-        try:
-            dump_path = os.path.join(self.resources_dir, 'postgresql.sql')
-            insert_cmd = ['psql',
-                          '-h', self.opts.db_postgresql_host,
-                          '-U', self.opts.db_postgresql_user,
-                          '-d', self.opts.db_postgresql_name,
-                          '-f', dump_path]
-            subprocess.Popen(insert_cmd, env={'PGPASSWORD': self.opts.db_postgresql_password}).wait()
-            return True
-        except Exception:
-            return False
+    def __import_dump(self):
+        dump_path = os.path.join(self.resources_dir, 'postgresql.sql')
+        return import_postgresql_dump(dump_path, self.opts, self.logger)
 
 
 if __name__ == '__main__':
