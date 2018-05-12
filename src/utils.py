@@ -12,10 +12,11 @@ import subprocess
 import sys
 
 from datetime import datetime
+from string import Template
 
-__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts', 'get_free_tcp_port',
-           'manage_cli', 'set_kolibri_home', 'select_cli', 'show_error', 'write_options_ini_option',
-           'import_postgresql_dump', 'export_postgresql_dump']
+__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts', 'get_free_tcp_port', 'manage_cli',
+           'set_kolibri_home', 'select_cli', 'show_error', 'import_postgresql_dump', 'export_postgresql_dump',
+           'write_options_ini']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -123,6 +124,7 @@ def import_postgresql_dump(dump_path, opts, logger):
         logger.error('Error trying to dump Postgres database')
         return False
 
+
 def export_postgresql_dump(dump_path, opts, logger):
     dump_cmd = ['pg_dump',
                 '-U', opts.db_postgresql_user,
@@ -137,6 +139,29 @@ def export_postgresql_dump(dump_path, opts, logger):
         return False
 
     logger.info('Postgres database dump exported to: {}'.format(dump_path))
+    return True
+
+
+def write_options_ini(template, dest, options, logger):
+    """
+    Render options.ini from a template file (located within the resources directory)
+    and write it to the specified destiation directory, using the passed `options`
+    dictionary for the config options
+    """
+    tmpl_filename = 'options.{}.ini'.format(template)
+    logger.info('Using {} as options.ini template'.format(tmpl_filename))
+    tmpl_path = open(os.path.join('resources', tmpl_filename))
+    tmpl = Template(tmpl_path.read())
+
+    dest_path = os.path.join(dest, 'options.ini')
+    with open(dest_path, 'w') as ini:
+        ini.write(tmpl.substitute(options))
+
+    if not os.path.exists(dest_path):
+        logger.error('Error trying to write options.ini')
+        return False
+
+    logger.info('options.ini was rendered and written to: {}'.format(dest_path))
     return True
 
 
@@ -156,31 +181,6 @@ def show_error(logger, error, message=''):
     if message:
         error_text = '{} {}'.format(error_text, message)
     logger.error(error_text)
-
-
-def write_options_ini_option(ini_path, **kwargs):
-    try:
-        import ConfigParser as configparser  # Python 2
-    except ImportError:
-        import configparser as configparser  # Python 3
-
-    section = kwargs.get('section')
-    option = kwargs.get('option')
-    value = kwargs.get('value')
-
-    parser = configparser.ConfigParser()
-    parser.optionxform = str  # necessary to preserve uppercase options
-
-    # handle Python 2 DeprecationWarning: This method will be removed in
-    # future versions. Use 'parser.read_file()' instead
-    if sys.version_info[0] < 3:
-        parser.readfp(open(ini_path))
-    else:
-        parser.read_file(open(ini_path))
-
-    parser.set(section, option, value)
-    with open(ini_path, 'w') as ini_file:
-        parser.write(ini_file)
 
 
 def get_config_opts(wanted, **kwargs):

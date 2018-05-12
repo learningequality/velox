@@ -13,7 +13,6 @@ import subprocess
 import tempfile
 
 from datetime import datetime
-from string import Template
 
 from filelock import FileLock
 try:
@@ -21,7 +20,7 @@ try:
 except ImportError:
     config = None
 from utils import (enable_log_to_stdout, get_config_opts, manage_cli, set_kolibri_home,
-                   import_postgresql_dump, export_postgresql_dump)
+                   import_postgresql_dump, export_postgresql_dump, write_options_ini)
 
 
 def bootstrap_database(opts, logger, *args, **kwargs):
@@ -57,7 +56,10 @@ class DatabaseBootstrap(object):
             return False
 
         self.temp_dir = self.__create_temp_dir()
-        self.__inject_options_ini()
+
+        if not self.__inject_options_ini():
+            self.logger.error('Error while writing options.ini, stopping')
+            return False
 
         set_kolibri_home(self.temp_dir, self.logger)
 
@@ -157,25 +159,11 @@ class DatabaseBootstrap(object):
 
     def __inject_options_ini(self):
         """
-        Injects options.ini configuration file into KOLIBRI_HOME directory
+        Renders and injects options.ini configuration file into KOLIBRI_HOME directory
         """
-        options = {'content_dir': os.path.join(self.temp_dir, 'content')}
-
-        if self.opts.database == 'postgresql':
-            options.update({
-                'database_engine': 'postgres',
-                'database_name': self.opts.db_postgresql_name,
-                'database_password': self.opts.db_postgresql_user,
-                'database_user': self.opts.db_postgresql_password,
-                'database_host': self.opts.db_postgresql_host,
-            })
-
-        tmpl_filename = 'options.{}.ini'.format(self.opts.database)
-        tmpl_path = open(os.path.join(self.resources_dir, tmpl_filename))
-        tmpl = Template(tmpl_path.read())
-
-        with open(os.path.join(self.temp_dir, 'options.ini'), 'w') as ini:
-            ini.write(tmpl.substitute(options))
+        options = vars(self.opts)
+        options.update({'content_dir': self.temp_dir})
+        return write_options_ini(self.opts.database, self.temp_dir, options, self.logger)
 
 
 class SQLiteDatabaseBootstrap(DatabaseBootstrap):
@@ -223,7 +211,6 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
         return '{}.sql'.format(self.channel_mapping)
 
     def __export_dump(self):
-        # TODO: export this and velox `__import_dump` methods to utils module
         dump_path = os.path.join(self.temp_dir, self.db_name)
         return export_postgresql_dump(dump_path, self.opts, self.logger)
 

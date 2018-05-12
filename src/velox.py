@@ -44,7 +44,7 @@ from bootstrap import bootstrap_database
 from requests.exceptions import RequestException
 from utils import calculate_duration
 from utils import enable_log_to_stdout, get_free_tcp_port
-from utils import (set_kolibri_home, get_config_opts, manage_cli, select_cli, write_options_ini_option,
+from utils import (set_kolibri_home, get_config_opts, manage_cli, select_cli, write_options_ini,
                    import_postgresql_dump)
 from utils import show_error
 
@@ -81,6 +81,7 @@ class EnvironmentSetup(object):
         bootstrap_database(self.opts, self.logger)
         self.logger.info('Copying bootstrapped data from {} to {}'.format(channel_dir, self.working_dir))
         shutil.copytree(channel_dir, self.working_dir)
+        self.__inject_options_ini()
         set_kolibri_home(self.working_dir, self.logger)
         if opts.database == 'postgresql':
             self.__import_dump()
@@ -96,17 +97,19 @@ class EnvironmentSetup(object):
         """
         self.manage('generateuserdata', '--classes', str(self.opts.classrooms), '--users', str(self.opts.learners))
 
-    def __update_options_ini_content_dir(self):
-        ini_path = os.path.join(self.working_dir, 'options.ini')
-        content_dir = os.path.join(self.working_dir, 'content')
-        write_options_ini_option(ini_path, section='Paths', option='CONTENT_DIR', value=content_dir)
+    def __inject_options_ini(self):
+        """
+        Renders and injects options.ini configuration file into the current working directory
+        """
+        options = vars(self.opts)
+        options.update({'content_dir': self.working_dir})
+        return write_options_ini(self.opts.database, self.working_dir, options, self.logger)
 
     def do_setup(self):
         """
         Prepare all the envirnoment to be able to run Kolibri and tests
         """
         self.__set_database()
-        self.__update_options_ini_content_dir()
         self.__generate_user_data()
 
     def do_clean(self, error_exit=False):
