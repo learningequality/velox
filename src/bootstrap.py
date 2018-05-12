@@ -19,7 +19,8 @@ try:
     from settings import config
 except ImportError:
     config = None
-from utils import enable_log_to_stdout, get_config_opts, manage_cli, set_kolibri_home, prepare_postgresql_connection
+from utils import (enable_log_to_stdout, get_config_opts, manage_cli, set_kolibri_home,
+                   import_postgresql_dump, export_postgresql_dump, write_options_ini)
 
 
 def bootstrap_database(opts, logger, *args, **kwargs):
@@ -40,6 +41,7 @@ class DatabaseBootstrap(object):
         self.logger = logger or kwargs.get('logger')
         self.channel_mapping = self.opts.channel
         self.db_name = self.get_db_name()
+        self.resources_dir = self.__get_resources_dir()
         super(DatabaseBootstrap, self).__init__()
 
     """
@@ -54,6 +56,11 @@ class DatabaseBootstrap(object):
             return False
 
         self.temp_dir = self.__create_temp_dir()
+
+        if not self.__inject_options_ini():
+            self.logger.error('Error while writing options.ini, stopping')
+            return False
+
         set_kolibri_home(self.temp_dir, self.logger)
 
         return True
@@ -74,13 +81,7 @@ class DatabaseBootstrap(object):
 
     def import_channels(self, channel_mapping):
         """
-        Imports the requested channels:
-            - tries to retrieve channel mappings from the configuration file
-            - get path to the python executable within Kolibri's virtualenv
-            - get path to the kolibri module within the development installation
-            - run Kolibri importchannel and importcontent django management commands for each of the channels:
-                - `[python_exec] [kolibri_module] manage importchannel network [channel_id]`
-                - `[python_exec] [kolibri_module] manage importcontent network [channel_id]`
+        Imports the requested channels
         """
         try:
             channel_ids = config['channel_mappings'][channel_mapping]
@@ -126,11 +127,14 @@ class DatabaseBootstrap(object):
     def __get_channel_dir(self, data_dir, channel_mapping):
         return os.path.join(data_dir, channel_mapping)
 
+    def __get_resources_dir(self):
+        return 'resources'
+
     def __get_or_create_data_dir(self):
         """
         Get or create data directory in which to store the bootstrap generated data and databases or database dumps
         """
-        bootstrap_data_dir = os.path.join('data', 'bootstrap')
+        bootstrap_data_dir = 'data'
 
         if not os.path.exists(bootstrap_data_dir):
             os.makedirs(bootstrap_data_dir)
@@ -153,6 +157,14 @@ class DatabaseBootstrap(object):
         except IOError:
             self.logger.error('Error trying to remove temporary directory')
 
+    def __inject_options_ini(self):
+        """
+        Renders and injects options.ini configuration file into KOLIBRI_HOME directory
+        """
+        options = vars(self.opts)
+        options.update({'content_dir': self.temp_dir})
+        return write_options_ini(self.opts.database, self.temp_dir, options, self.logger)
+
 
 class SQLiteDatabaseBootstrap(DatabaseBootstrap):
 
@@ -171,7 +183,7 @@ class SQLiteDatabaseBootstrap(DatabaseBootstrap):
         """
         Copy the previously prepared testing database to the kolibri_home directory
         """
-        clean_db_path = os.path.join('data', self.db_name)
+        clean_db_path = os.path.join(self.resources_dir, self.db_name)
         dest_path = os.path.join(dest, self.db_name)
 
         shutil.copyfile(clean_db_path, dest_path)
@@ -190,32 +202,21 @@ class PostgreSQLDatabaseBootstrap(DatabaseBootstrap):
         """
         Start the PostgreSQL bootstrap process
         """
-        if prepare_postgresql_connection(self.opts, self.logger) and self.import_channels(self.channel_mapping):
+        if self.__import_dump() and self.import_channels(self.channel_mapping):
             self.copy_imported_content(self.temp_dir, self.channel_dir)
-            self.__dump_db()
+            self.__export_dump()
             self.copy_imported_db(self.temp_dir, self.channel_dir)
 
     def get_db_name(self):
         return '{}.sql'.format(self.channel_mapping)
 
-    def __dump_db(self):
+    def __export_dump(self):
         dump_path = os.path.join(self.temp_dir, self.db_name)
-        dump_cmd = ['pg_dump',
-                    '-U', os.environ.get('KOLIBRI_DB_USER'),
-                    '-h', os.environ.get('KOLIBRI_DB_HOST') or 'localhost',
-                    os.environ.get('KOLIBRI_DB_NAME'),
-                    '--clean',
-                    '-f', dump_path]
+        return export_postgresql_dump(dump_path, self.opts, self.logger)
 
-        p = subprocess.Popen(dump_cmd, env={'PGPASSWORD': os.environ.get('KOLIBRI_DB_PASSWORD')})
-        p.wait()
-
-        if not os.path.exists(dump_path):
-            self.logger.error('Error trying to dump Postgres database')
-            return False
-
-        self.logger.info('Postgres database dump created: {}'.format(self.db_name))
-        return True
+    def __import_dump(self):
+        dump_path = os.path.join(self.resources_dir, 'postgresql.sql')
+        return import_postgresql_dump(dump_path, self.opts, self.logger)
 
 
 if __name__ == '__main__':

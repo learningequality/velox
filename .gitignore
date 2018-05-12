@@ -94,7 +94,7 @@ ENV/
 settings.py
 
 # bootstrapped data
-data/bootstrap/
+data/
 
 # variuos output data
 output/

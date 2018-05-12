@@ -8,12 +8,15 @@ import argparse
 import logging
 import os
 import socket
+import subprocess
 import sys
 
 from datetime import datetime
+from string import Template
 
-__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts', 'get_free_tcp_port',
-           'manage_cli', 'prepare_postgresql_connection', 'set_kolibri_home', 'select_cli', 'show_error']
+__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts', 'get_free_tcp_port', 'manage_cli',
+           'set_kolibri_home', 'select_cli', 'show_error', 'import_postgresql_dump', 'export_postgresql_dump',
+           'write_options_ini']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -40,7 +43,7 @@ def set_kolibri_home(path, logger):
     """
     kolibri_home = path if path else os.path.join(os.path.expanduser('~'), '.kolibri')
     logger.info('Setting the KOLIBRI_HOME env to {}'.format(kolibri_home))
-    os.environ.setdefault('KOLIBRI_HOME', kolibri_home)
+    os.environ['KOLIBRI_HOME'] = kolibri_home
 
 
 def get_kolibri_home():
@@ -107,6 +110,61 @@ def manage_cli(opts, *args):
     return commands + ['manage', ] + list(args)
 
 
+def import_postgresql_dump(dump_path, opts, logger):
+    try:
+        insert_cmd = ['psql',
+                      '-h', opts.db_postgresql_host,
+                      '-U', opts.db_postgresql_user,
+                      '-d', opts.db_postgresql_name,
+                      '-f', dump_path]
+        subprocess.Popen(insert_cmd, env={'PGPASSWORD': opts.db_postgresql_password}).wait()
+        logger.info('Postgres database dump imported from: {}'.format(dump_path))
+        return True
+    except Exception:
+        logger.error('Error trying to dump Postgres database')
+        return False
+
+
+def export_postgresql_dump(dump_path, opts, logger):
+    dump_cmd = ['pg_dump',
+                '-U', opts.db_postgresql_user,
+                '-h', opts.db_postgresql_host,
+                opts.db_postgresql_name,
+                '--clean',
+                '-f', dump_path]
+    subprocess.Popen(dump_cmd, env={'PGPASSWORD': opts.db_postgresql_password}).wait()
+
+    if not os.path.exists(dump_path):
+        logger.error('Error trying to dump Postgres database')
+        return False
+
+    logger.info('Postgres database dump exported to: {}'.format(dump_path))
+    return True
+
+
+def write_options_ini(template, dest, options, logger):
+    """
+    Render options.ini from a template file (located within the resources directory)
+    and write it to the specified destiation directory, using the passed `options`
+    dictionary for the config options
+    """
+    tmpl_filename = 'options.{}.ini'.format(template)
+    logger.info('Using {} as options.ini template'.format(tmpl_filename))
+    tmpl_path = open(os.path.join('resources', tmpl_filename))
+    tmpl = Template(tmpl_path.read())
+
+    dest_path = os.path.join(dest, 'options.ini')
+    with open(dest_path, 'w') as ini:
+        ini.write(tmpl.substitute(options))
+
+    if not os.path.exists(dest_path):
+        logger.error('Error trying to write options.ini')
+        return False
+
+    logger.info('options.ini was rendered and written to: {}'.format(dest_path))
+    return True
+
+
 def calculate_duration(start):
     """
     Returns the difference in seconds between start and now
@@ -123,27 +181,6 @@ def show_error(logger, error, message=''):
     if message:
         error_text = '{} {}'.format(error_text, message)
     logger.error(error_text)
-
-
-def prepare_postgresql_connection(opts, logger):
-    opts_map = (('db_postgresql_name', 'KOLIBRI_DB_NAME'),
-                ('db_postgresql_user', 'KOLIBRI_DB_USER'),
-                ('db_postgresql_password', 'KOLIBRI_DB_PASSWORD'),
-                ('db_postgresql_host', 'KOLIBRI_DB_HOST'))
-
-    for opt_key, env_var in opts_map:
-        opt_value = getattr(opts, opt_key, None)
-        if opt_value:
-            os.environ.setdefault(env_var, opt_value)
-        else:
-            logger.error('PostgreSQL setting: {} or env var: {} is missing'.format(
-                         opt_key, env_var))
-            return False
-
-    # Set the engine manually
-    os.environ.setdefault('KOLIBRI_DB_ENGINE', 'postgresql')
-
-    return True
 
 
 def get_config_opts(wanted, **kwargs):
@@ -208,7 +245,7 @@ def get_default_args():
         'db_postgresql_name': os.environ.get('KOLIBRI_DB_NAME', ''),
         'db_postgresql_user': os.environ.get('KOLIBRI_DB_USER', ''),
         'db_postgresql_password': os.environ.get('KOLIBRI_DB_PASSWORD', ''),
-        'db_postgresql_host': os.environ.get('KOLIBRI_DB_HOST', '')
+        'db_postgresql_host': os.environ.get('KOLIBRI_DB_HOST', '127.0.0.1')
     }
 
 
