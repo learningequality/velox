@@ -37,13 +37,15 @@ You can run `python src/velox.py -h` or `python src/bootstrap.py -h`  to see mor
 
 It should be possible to run `velox` script simply by:
 
-`python src/velox.py`
+```python src/velox.py```
 
 as there are certain internal defaults defined.
 
 ### Testing scenarios
 To specify which testing scenario to run, `-t` or `--test` command line option can be used, e.g.:
-`python src/velox.py -t multiple_clients_multiple_resources`
+
+```python src/velox.py -t multiple_clients_multiple_resources```
+
 If no tests are specified as command line options, all tests within the `scenarios` directory will be ran.
 
 All testing scenarios should be located within the `scenarios` directory.

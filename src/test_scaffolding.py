@@ -152,7 +152,7 @@ class KolibriUserBehavior(TaskSet):
         self.session_id = r.cookies['sessionid']
         if self.kolibri_users:
             self.user = random.choice(self.kolibri_users)
-            print ('****************\n\t\t\t\t\tUser:{}'.format(self.user['username']))
+            print('****************\n\t\t\t\t\tUser:{}'.format(self.user['username']))
             self.log_in(self.user['username'], '', self.user['facility'])
 
     def log_in(self, username, password, facility=None):
