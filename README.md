@@ -66,7 +66,6 @@ Command line arguments have the highest precedence, but it is also possible to e
 1) command line arguments
 2) `settings` module
 3) internally set defaults
-4) environment variables (currently only for PostgreSQL credentials)
 
 #### Using the `settings` module
 To enable the `settings` module simply copy the `settings.example.py`, rename it to `settings.py` and configure as per your development environment settings.
