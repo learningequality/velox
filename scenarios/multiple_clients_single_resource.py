@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Experiment scenario 1
-Server unresponsive when multiple clients access the same resource
+Experiment scenario 2
+Server unresponsive when multiple clients access different resource
 
-Endpoints:
+Endpoints (shared between the requests):
 * /user/#/signin
 * /facility/#/classes
 * /learn/#/topics/{id} : video
@@ -11,9 +11,6 @@ Endpoints:
 * /learn/#/topics/{id} : JavaScript (Phet or similars)
 * … exercises, exams, coach pages
 
-
-PENDING: Need config for velox to run this test multiple times with different velox options
-This experiment should be executed multiple times with different options ¿a yaml file passed to velox?
 
 Channels    Learners        Classrooms     Requests/s   Database
 ================================================================
@@ -28,38 +25,41 @@ Multiple        25              2           100         postgresql
 """
 from __future__ import print_function, unicode_literals
 
-from locust import HttpLocust, TaskSet, task
+from locust import HttpLocust, task
+
 
 try:
-    from test_scaffolding import launch
+    from test_scaffolding import launch, KolibriUserBehavior
 except ImportError:
     # the test is being run out of velox environment
     # and velox package is not installed
     import os
     import sys
     sys.path.append(os.path.join(os.getcwd(), 'src'))
-    from test_scaffolding import launch
+    from test_scaffolding import launch, KolibriUserBehavior
 
 
-class UserBehavior(TaskSet):
+class UserBehavior(KolibriUserBehavior):
 
-    @task(2)
-    def get_something(self):
-        self.client.get('/learn/#/recommended')
-
-    @task(1)
-    def get_something_else(self):
-        self.client.get('/')
+    @task
+    def load_exercise_resources(self):
+        self.load_resource(self.exercises)
+        self.load_resource(self.videos)
+        self.load_resource(self.documents)
+        self.load_resource(self.html5)
 
 
 class WebsiteUser(HttpLocust):
     task_set = UserBehavior
-    min_wait = 0
-    max_wait = 0
+    # don't wait, hit the server as fast as you can:
+    min_wait = 5000
+    max_wait = 15000
 
 
-def run(base_url='http://kolibridemo.learningequality.org', users=3):
-    launch(WebsiteUser, base_url, users, 3)
+def run(base_url='http://kolibribeta.learningequality.org', learners=25):
+    # rate= 5
+    # total number of requests=100
+    launch(WebsiteUser, base_url, learners, 5, 100, timeout=30)
 
 
 if __name__ == '__main__':
