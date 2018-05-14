@@ -42,9 +42,10 @@ except ImportError:
     from test_scaffolding import launch
 
 
-def add_timestamp(url):
+def add_timestamp(url, first=False):
     time_token = str(time.time()).replace('.', '')[:13]
-    new_url = '{url}&{timestamp}={timestamp}'.format(url=url, timestamp=time_token)
+    separator = '?' if first else '&'
+    new_url = '{url}{separator}{timestamp}={timestamp}'.format(url=url, separator=separator, timestamp=time_token)
     return new_url
 
 
@@ -57,7 +58,7 @@ def filter_contents(contents, kind, extension):
 class UserBehavior(TaskSet):
 
     def on_start(self):
-        # request '/' to get the initial cookies
+        # initial login to fetch info:
         r = self.client.get('/user/')
         self.csrf_token = r.cookies['csrftoken']
         self.session_id = r.cookies['sessionid']
@@ -66,22 +67,43 @@ class UserBehavior(TaskSet):
         self.html5 = []
         self.documents = []
         self.exercises = []
+        self.kolibri_users = []
         self.get_content()
-        if self.log_in('admin', 'admin'):
-            self.kolibri_usernames = self.get_kolibri_usernames()
-            # assume all users arrive at the index page
 
-    def log_in(self, username, password):
+        if self.log_in('admin', 'admin'):
+            self.kolibri_users = self.get_kolibri_users()
+
+        # logout:
+        self.client.delete('/api/session/current/', headers={'X-CSRFToken': self.csrf_token})
+        # get session info to login with random user:
+        r = self.client.get('/user/')
+        self.csrf_token = r.cookies['csrftoken']
+        self.session_id = r.cookies['sessionid']
+        if self.kolibri_users:
+            self.user = random.choice(self.kolibri_users)
+            self.log_in(self.user['username'], '', self.user['facility'])
+
+    def log_in(self, username, password, facility=None):
         login_url = '/api/session/'
+
         data = {'username': username, 'password': password}
-        headers = {'X-CSRFToken': self.csrf_token,
-                   'Cookie': 'sessionid={session_id}'.format(session_id=self.session_id)}
-        r = self.client.post(login_url, data=data, headers=headers)
+        if facility:
+            data['facility'] = facility
+        self.headers = {'X-CSRFToken': self.csrf_token,
+                        'Cookie': 'sessionid={session_id}'.format(session_id=self.session_id)}
+        r = self.client.post(login_url, data=data, headers=self.headers)
+        # received new session data
+        self.csrf_token = r.cookies['csrftoken']
+        self.session_id = r.cookies['sessionid']
+        self.headers = {'X-CSRFToken': self.csrf_token,
+                        'Cookie': 'sessionid={session_id}'.format(session_id=self.session_id)}
         return r.status_code == 200
 
-    def get_kolibri_usernames(self):
+    def get_kolibri_users(self):
         r = self.client.get('/api/facilityuser/')
-        return [u['username'] for u in json.loads(r.content)]
+        # users with coach or admin role need password to login:
+        return [{'username': u['username'], 'id':u['id'], 'facility':u['facility']}
+                for u in json.loads(r.content) if u['roles'] == []]
 
     def get_content(self):
         r = self.client.get('/learn/#/recommended')
@@ -91,8 +113,6 @@ class UserBehavior(TaskSet):
         try:
             contents = json.loads(r.content)
             self.urls = ['/learn/#/recommended/{}'.format(url['pk']) for url in contents]
-            # video_resources = [content['files'] for content in contents if content['kind'] == 'video']
-            # self.videos = [file['download_url'] for resource in video_resources for file in resource if file['extension'] == 'mp4']
             self.videos = filter_contents(contents, 'video', 'mp4')
             self.html5 = filter_contents(contents, 'html5', 'zip')
             self.documents = filter_contents(contents, 'document', 'pdf')
@@ -136,8 +156,11 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run(base_url='http://kolibribeta.learningequality.org', users=20):
-    launch(WebsiteUser, base_url, users, 5)
+# def run(base_url='http://kolibribeta.learningequality.org', learners=25):
+def run(base_url='http://127.0.0.1:8000', learners=25):
+    # rate= 5
+    # total number of requests=100
+    launch(WebsiteUser, base_url, learners, 5, 100, timeout=30)
 
 
 if __name__ == '__main__':
