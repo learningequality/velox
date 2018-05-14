@@ -13,11 +13,15 @@ from __future__ import print_function, unicode_literals
 import datetime
 import gevent
 import inspect
+import json
 import os
+import random
+import time
 
 from argparse import Namespace
 from locust.runners import LocalLocustRunner
 from locust import events, runners
+from locust import TaskSet
 from locust.stats import print_error_report, print_percentile_stats, print_stats, write_stat_csvs, stats_writer
 from locust.log import setup_logging
 
@@ -82,7 +86,7 @@ def launch(classname, base_url, n_clients, rate, n_requests=None, timeout=600):
         'host': base_url,
         'num_clients': n_clients,
         'hatch_rate': rate,
-        'num_requests': n_requests if n_requests else n_clients * 10 ,
+        'num_requests': n_requests if n_requests else n_clients * 10,
         'run_time': timeout,
         'no_web': True,
         'no_reset_stats': True,
@@ -107,3 +111,91 @@ def launch(classname, base_url, n_clients, rate, n_requests=None, timeout=600):
         shutdown(options, code=code)
     except KeyboardInterrupt:
         shutdown(options, 0)
+
+
+def add_timestamp(url, first=False):
+    time_token = str(time.time()).replace('.', '')[:13]
+    separator = '?' if first else '&'
+    new_url = '{url}{separator}{timestamp}={timestamp}'.format(url=url, separator=separator, timestamp=time_token)
+    return new_url
+
+
+def filter_contents(contents, kind, extension):
+    resources = [content['files'] for content in contents if content['kind'] == kind]
+    filtered = [file['download_url'] for resource in resources for file in resource if file['extension'] == extension]
+    return filtered
+
+
+class KolibriUserBehavior(TaskSet):
+
+    def on_start(self):
+        # initial login to fetch info:
+        r = self.client.get('/user/')
+        self.csrf_token = r.cookies['csrftoken']
+        self.session_id = r.cookies['sessionid']
+        self.urls = []
+        self.videos = []
+        self.html5 = []
+        self.documents = []
+        self.exercises = []
+        self.kolibri_users = []
+        self.get_content()
+
+        if self.log_in('admin', 'admin'):
+            self.kolibri_users = self.get_kolibri_users()
+
+        # logout:
+        self.client.delete('/api/session/current/', headers={'X-CSRFToken': self.csrf_token})
+        # get session info to login with random user:
+        r = self.client.get('/user/')
+        self.csrf_token = r.cookies['csrftoken']
+        self.session_id = r.cookies['sessionid']
+        if self.kolibri_users:
+            self.user = random.choice(self.kolibri_users)
+            print ('****************\n\t\t\t\t\tUser:{}'.format(self.user['username']))
+            self.log_in(self.user['username'], '', self.user['facility'])
+
+    def log_in(self, username, password, facility=None):
+        login_url = '/api/session/'
+
+        data = {'username': username, 'password': password}
+        if facility:
+            data['facility'] = facility
+        self.headers = {'X-CSRFToken': self.csrf_token,
+                        'Cookie': 'sessionid={session_id}'.format(session_id=self.session_id)}
+        r = self.client.post(login_url, data=data, headers=self.headers)
+        # received new session data
+        self.csrf_token = r.cookies['csrftoken']
+        self.session_id = r.cookies['sessionid']
+        self.headers = {'X-CSRFToken': self.csrf_token,
+                        'Cookie': 'sessionid={session_id}'.format(session_id=self.session_id)}
+        return r.status_code == 200
+
+    def get_kolibri_users(self):
+        r = self.client.get('/api/facilityuser/')
+        # users with coach or admin role need password to login:
+        return [{'username': u['username'], 'id':u['id'], 'facility':u['facility']}
+                for u in json.loads(r.content) if u['roles'] == []]
+
+    def get_content(self):
+        r = self.client.get('/learn/#/recommended')
+        get_popular_url = add_timestamp('/api/contentnode/?popular=true')
+        r = self.client.get(get_popular_url, headers={'X-CSRFToken': self.csrf_token})
+
+        try:
+            contents = json.loads(r.content)
+            self.urls = ['/learn/#/recommended/{}'.format(url['pk']) for url in contents]
+            self.videos = filter_contents(contents, 'video', 'mp4')
+            self.html5 = filter_contents(contents, 'html5', 'zip')
+            self.documents = filter_contents(contents, 'document', 'pdf')
+            self.exercises = filter_contents(contents, 'exercise', 'perseus')
+        except ValueError:
+            #  bad response from the server
+            pass
+
+    def load_resource(self, resource, with_timestamp=False):
+        if resource:
+            url = random.choice(resource)
+            if with_timestamp:
+                url = add_timestamp(url)
+            self.client.get(url)
