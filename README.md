@@ -9,8 +9,6 @@ Velox is an extension library for the [Kolibri](https://github.com/learningequal
 ## Installing Velox
 The project is being actively developed, which means that you may run into potential issues and that you will most probably have to set up a few things before being able to successfully run Velox in your environment.
 
-Due to the current lack of support for PostgreSQL within the Kolibri, it is currently possible to run Velox only using the Kolibri development environment if you wish to run tests using PostgreSQL database as well.
-
 ### Requirements
 #### Kolibri
 You can follow the [online developer documentation](http://kolibri-dev.readthedocs.io/en/develop/) to set up the development environment.
@@ -26,35 +24,6 @@ To be able to run tests in the PostgreSQL context, you will have to install [Pos
 - Activate the virtualenv
 - run `pip install -r requirements.txt` to retrieve dependencies
 
-### Patch Kolibri for PostgreSQL support
-Due to the before-mentioned lack of support for PostgreSQL within the Kolibri, to be able to run Velox with the PostgreSQL database enabled, you will have to patch `kolibri/kolibri/deployment/default/settings/base.py` with the following code:
-
-```
-_db_engine = os.environ.get('KOLIBRI_DB_ENGINE', 'sqlite3')
-if _db_engine == 'sqlite3':
-    _db_name = os.path.join(KOLIBRI_HOME, os.environ.get('KOLIBRI_DB_NAME', 'db.sqlite3'))
-elif _db_engine == 'postgresql':
-    _db_name = os.environ.get('KOLIBRI_DB_NAME', 'kolibri')
-_db_password = os.environ.get('KOLIBRI_DB_PASSWORD', '')
-_db_user = os.environ.get('KOLIBRI_DB_USER', 'postgres')
-_db_host = os.environ.get('KOLIBRI_DB_HOST', '')
-_db_port = os.environ.get('KOLIBRI_DB_PORT', '')
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.{engine}'.format(engine=_db_engine),
-        'NAME': _db_name,
-        'PASSWORD': _db_password,
-        'USER': _db_user,
-        'HOST': _db_host,
-        'PORT': _db_port,
-        'OPTIONS': {}
-    },
-}
-
-if _db_engine == 'sqlite3':
-    DATABASES['default']['OPTIONS']['timeout'] = 100
-```
 ## Using Velox
 
 ### Getting started
@@ -73,12 +42,19 @@ It should be possible to run `velox` script simply by:
 as there are certain internal defaults defined.
 
 ### Testing scenarios
-Different tests can be created. They should be placed in a directory called `scenarios`.
-This directory must exist in the directory where `velox` is launched from.
-Each test must be a python file, having at least a function with this syntax:
-`def run(base_url='http://kolibridemo.learningequality.org', users=3)`
-`velox` will load this module and will execute its `run` function to launch the tests.
+To specify which testing scenario to run, `-t` or `--test` command line option can be used, e.g.:
+`python src/velox.py -t multiple_clients_multiple_resources`
+If no tests are specified as command line options, all tests within the `scenarios` directory will be ran.
 
+All testing scenarios should be located within the `scenarios` directory.
+Each test scenario should be a python file and at minimum contain a function with the following syntax:
+
+```
+def run(base_url='http://kolibridemo.learningequality.org', learners=3):
+    pass
+```
+
+Once ran, `velox` will try to load this module and execute its `run` function to launch the tests.
 
 ### Configuration
 
@@ -91,7 +67,7 @@ Command line arguments have the highest precedence, but it is also possible to e
 4) environment variables (currently only for PostgreSQL credentials)
 
 #### Using the `settings` module
-To enable the `settings` module simply copy the `settings.example.py`, rename it to `settings.py` and configure as you see fit.
+To enable the `settings` module simply copy the `settings.example.py`, rename it to `settings.py` and configure as per your development environment settings.
 
 #### Default values
 
@@ -106,11 +82,9 @@ To enable the `settings` module simply copy the `settings.example.py`, rename it
     'classrooms': 1,
     'test': 'all',
     'iterations': 3,
-    'db_postgresql_name': os.environ.get('KOLIBRI_DB_NAME', ''),
-    'db_postgresql_user': os.environ.get('KOLIBRI_DB_USER', ''),
-    'db_postgresql_password': os.environ.get('KOLIBRI_DB_PASSWORD', ''),
-    'db_postgresql_host': os.environ.get('KOLIBRI_DB_HOST', '')
+    'db_postgresql_name': '',
+    'db_postgresql_user': '',
+    'db_postgresql_password': '',
+    'db_postgresql_host': '127.0.0.1'
 }
 ```
-
-PostgreSQL credentials are currently being handle in a special way due to the compatibility issues with the current Kolibri codebase.

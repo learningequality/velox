@@ -242,10 +242,10 @@ def get_default_args():
         'classrooms': 1,
         'test': 'all',
         'iterations': 3,
-        'db_postgresql_name': os.environ.get('KOLIBRI_DB_NAME', ''),
-        'db_postgresql_user': os.environ.get('KOLIBRI_DB_USER', ''),
-        'db_postgresql_password': os.environ.get('KOLIBRI_DB_PASSWORD', ''),
-        'db_postgresql_host': os.environ.get('KOLIBRI_DB_HOST', '127.0.0.1')
+        'db_postgresql_name': '',
+        'db_postgresql_user': '',
+        'db_postgresql_password': '',
+        'db_postgresql_host': '127.0.0.1'
     }
 
 
