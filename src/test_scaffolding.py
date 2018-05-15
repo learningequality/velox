@@ -120,6 +120,14 @@ def add_timestamp(url, first=False):
     return new_url
 
 
+def get_resources(contents, kind):
+    resources = [{'id': content['id'],
+                  'channel_id': content['channel_id'],
+                  'files':[file['download_url']
+                           for file in content['files']]} for content in contents if content['kind'] == kind]
+    return resources
+
+
 def filter_contents(contents, kind, extension):
     resources = [content['files'] for content in contents if content['kind'] == kind]
     filtered = [file['download_url'] for resource in resources for file in resource if file['extension'] == extension]
@@ -185,17 +193,24 @@ class KolibriUserBehavior(TaskSet):
         try:
             contents = json.loads(r.content)
             self.urls = ['/learn/#/recommended/{}'.format(url['pk']) for url in contents]
-            self.videos = filter_contents(contents, 'video', 'mp4')
-            self.html5 = filter_contents(contents, 'html5', 'zip')
-            self.documents = filter_contents(contents, 'document', 'pdf')
-            self.exercises = filter_contents(contents, 'exercise', 'perseus')
+            self.videos = get_resources(contents, 'video')
+            self.html5 = get_resources(contents, 'html5')
+            self.documents = get_resources(contents, 'document')
+            self.exercises = get_resources(contents, 'exercise')
         except ValueError:
             #  bad response from the server
             pass
 
-    def load_resource(self, resource, with_timestamp=False):
-        if resource:
-            url = random.choice(resource)
-            if with_timestamp:
-                url = add_timestamp(url)
-            self.client.get(url)
+    def do_logging(self, id, channel_id):
+        pass
+
+    def load_resource(self, resources, with_timestamp=False):
+        if resources:
+            resource = random.choice(resources)
+            # less fetch all the resources:
+            for file in resource['files']:
+                url = random.choice(resource)
+                if with_timestamp:
+                    url = add_timestamp(url)
+                self.client.get(url)
+            self.do_logging(resource['id'], resource['channel_id'])
