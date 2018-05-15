@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Experiment scenario 2
-Server unresponsive when multiple clients access different resource
+Experiment scenario 1
+Server unresponsive when multiple clients access the same resource
 
-Endpoints (shared between the requests):
+Endpoints:
 * /user/#/signin
 * /facility/#/classes
 * /learn/#/topics/{id} : video
