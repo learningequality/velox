@@ -128,12 +128,6 @@ def get_resources(contents, kind):
     return resources
 
 
-def filter_contents(contents, kind, extension):
-    resources = [content['files'] for content in contents if content['kind'] == kind]
-    filtered = [file['download_url'] for resource in resources for file in resource if file['extension'] == extension]
-    return filtered
-
-
 class KolibriUserBehavior(TaskSet):
 
     def on_start(self):
