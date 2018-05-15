@@ -56,9 +56,17 @@ def get_test_calling():
     :returns: A string with the name of the module importing this module
     """
     frame_records = inspect.stack()[2]
-    calling_module = inspect.getmodulename(frame_records[1])
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
-    return '{mod}_{timestamp}'.format(mod=calling_module, timestamp=timestamp)
+    return inspect.getmodulename(frame_records[1])
+
+
+def get_csv_filename():
+    """
+    Returns the filename for the csv stats export
+    :returns: A string with the filename for the csv stats export
+    """
+    calling_module = get_test_calling()
+    timestamp = datetime.datetime.now().strftime('%Y_%m_%d__%H_%M_%S__%f')
+    return '{timestamp}_{mod}'.format(mod=calling_module, timestamp=timestamp)
 
 
 def get_or_create_output_dir():
@@ -90,7 +98,7 @@ def launch(classname, base_url, n_clients, rate, n_requests=None, timeout=600):
         'run_time': timeout,
         'no_web': True,
         'no_reset_stats': True,
-        'csvfilebase': os.path.join(get_or_create_output_dir(), get_test_calling())
+        'csvfilebase': os.path.join(get_or_create_output_dir(), get_csv_filename())
     })
 
     setup_logging('INFO', None)
