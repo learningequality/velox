@@ -129,7 +129,7 @@ def add_timestamp(url, first=False):
 
 
 def get_resources(contents, kind):
-    resources = [{'id': content['id'],
+    resources = [{'content_id': content['id'],
                   'channel_id': content['channel_id'],
                   'files':[file['download_url']
                            for file in content['files']]} for content in contents if content['kind'] == kind]
@@ -203,9 +203,6 @@ class KolibriUserBehavior(TaskSet):
             #  bad response from the server
             pass
 
-    def do_logging(self, id, channel_id):
-        pass
-
     def load_resource(self, resources, with_timestamp=False):
         if resources:
             resource = random.choice(resources)
@@ -214,4 +211,26 @@ class KolibriUserBehavior(TaskSet):
                 if with_timestamp:
                     file_url = add_timestamp(file_url)
                 self.client.get(file_url)
-            self.do_logging(resource['id'], resource['channel_id'])
+            self.do_logging(resource['content_id'], resource['channel_id'])
+
+    def do_logging(self, content_id, channel_id):
+        self.do_contentsessionlog(content_id, channel_id)
+
+    def do_contentsessionlog(self, content_id, channel_id):
+        url = '/api/contentsessionlog/'
+        now = datetime.datetime.now()
+
+        data = {
+            'channel_id': channel_id,
+            'content_id': content_id,
+            'end_timestamp': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'extra_fields': '{}',
+            'kind': 'video',  # TODO we have to pass the content type to this method
+            'progress': 0,
+            'start_timestamp': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'time_spent': 0,
+            'user': self.user['id']
+        }
+
+        self.client.post(add_timestamp(url, True), data=data, headers=self.headers)
+        # TODO fix getting 403
