@@ -41,25 +41,21 @@ except ImportError:
 
 class UserBehavior(KolibriUserBehavior):
 
-    @task(30)
-    def load_learn_pages(self):
-        self.load_resource(self.urls, True)
-
     @task(40)
     def load_video_resources(self):
-        self.load_resource(self.videos)
+        self.load_resource('video')
 
     @task(50)
     def load_html5_resources(self):
-        self.load_resource(self.html5)
+        self.load_resource('html5')
 
     @task(20)
     def load_document_resources(self):
-        self.load_resource(self.documents)
+        self.load_resource('document')
 
     @task(30)
     def load_exercise_resources(self):
-        self.load_resource(self.exercises)
+        self.load_resource('exercise')
 
 
 class WebsiteUser(HttpLocust):

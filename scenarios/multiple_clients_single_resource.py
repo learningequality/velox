@@ -43,10 +43,10 @@ class UserBehavior(KolibriUserBehavior):
 
     @task
     def load_exercise_resources(self):
-        self.load_resource(self.exercises)
-        self.load_resource(self.videos)
-        self.load_resource(self.documents)
-        self.load_resource(self.html5)
+        self.load_resource('exercise')
+        self.load_resource('video')
+        self.load_resource('document')
+        self.load_resource('html5')
 
 
 class WebsiteUser(HttpLocust):

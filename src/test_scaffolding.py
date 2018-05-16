@@ -16,6 +16,7 @@ import inspect
 import json
 import os
 import random
+import sys
 import time
 
 from argparse import Namespace
@@ -143,19 +144,17 @@ class KolibriUserBehavior(TaskSet):
         r = self.client.get('/user/')
         self.csrf_token = r.cookies['csrftoken']
         self.session_id = r.cookies['sessionid']
-        self.urls = []
-        self.videos = []
-        self.html5 = []
-        self.documents = []
-        self.exercises = []
+        self.resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
         self.kolibri_users = []
+        self.user = None
         self.get_content()
 
         if self.log_in('admin', 'admin'):
             self.kolibri_users = self.get_kolibri_users()
 
         # logout:
-        self.client.delete('/api/session/current/', headers={'X-CSRFToken': self.csrf_token})
+        self.client.delete('/api/session/current/',
+                           headers={'X-CSRFToken': self.csrf_token})
         # get session info to login with random user:
         r = self.client.get('/user/')
         self.csrf_token = r.cookies['csrftoken']
@@ -164,6 +163,10 @@ class KolibriUserBehavior(TaskSet):
             self.user = random.choice(self.kolibri_users)
             print('****************\n\t\t\t\t\tUser:{}'.format(self.user['username']))
             self.log_in(self.user['username'], '', self.user['facility'])
+        else:
+            # TODO: add appropiate logging
+            print("No learners to run the tests. At least 1 admin + 1 coach + 1 learner are needed")
+            sys.exit(1)
 
     def log_in(self, username, password, facility=None):
         login_url = '/api/session/'
@@ -194,38 +197,34 @@ class KolibriUserBehavior(TaskSet):
 
         try:
             contents = json.loads(r.content)
-            self.urls = ['/learn/#/recommended/{}'.format(url['pk']) for url in contents]
-            self.videos = get_resources(contents, 'video')
-            self.html5 = get_resources(contents, 'html5')
-            self.documents = get_resources(contents, 'document')
-            self.exercises = get_resources(contents, 'exercise')
+            for kind in self.resources.keys():
+                self.resources[kind] = get_resources(contents, kind)
         except ValueError:
             #  bad response from the server
             pass
 
-    def load_resource(self, resources, with_timestamp=False):
-        if resources:
-            resource = random.choice(resources)
+    def load_resource(self, kind, with_timestamp=False):
+        if self.resources[kind]:
+            resource = random.choice(self.resources[kind])
             # less fetch all the resources:
             for file_url in resource['files']:
                 if with_timestamp:
                     file_url = add_timestamp(file_url)
                 self.client.get(file_url)
-            self.do_logging(resource['content_id'], resource['channel_id'])
+            self.do_logging(resource['content_id'], resource['channel_id'], kind)
 
-    def do_logging(self, content_id, channel_id):
-        self.do_contentsessionlog(content_id, channel_id)
+    def do_logging(self, content_id, channel_id, kind):
+        self.do_contentsessionlog(content_id, channel_id, kind)
 
-    def do_contentsessionlog(self, content_id, channel_id):
+    def do_contentsessionlog(self, content_id, channel_id, kind):
         url = '/api/contentsessionlog/'
         now = datetime.datetime.now()
-
         data = {
             'channel_id': channel_id,
             'content_id': content_id,
             'end_timestamp': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'extra_fields': '{}',
-            'kind': 'video',  # TODO we have to pass the content type to this method
+            'kind': kind,
             'progress': 0,
             'start_timestamp': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'time_spent': 0,
