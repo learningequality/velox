@@ -130,7 +130,7 @@ def add_timestamp(url, first=False):
     return new_url
 
 
-def get_resources(contents, kind):
+def get_content_resources(contents, kind):
     resources = [{'content_id': content['id'],
                   'channel_id': content['channel_id'],
                   'files':[file['download_url']
@@ -144,11 +144,10 @@ class KolibriUserBehavior(TaskSet):
     ADMIN_PASSWORD = 'admin'
 
     def on_start(self):
-        self.resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
         self.kolibri_users = []
         self.current_user = None
         self.headers = self.get_headers()
-        self.get_content()
+        self.resources = self.get_resources()
 
         # log in (and log out) with admin user to be able to get the list of all kolibri users
         if self.log_in(self.ADMIN_USERNAME, self.ADMIN_PASSWORD):
@@ -204,18 +203,19 @@ class KolibriUserBehavior(TaskSet):
         return [{'username': u['username'], 'id':u['id'], 'facility':u['facility']}
                 for u in json.loads(r.content) if u['roles'] == []]
 
-    def get_content(self):
-        r = self.client.get('/learn/#/recommended')
-        get_popular_url = add_timestamp('/api/contentnode/?popular=true')
-        r = self.client.get(get_popular_url, headers=self.headers)
+    def get_resources(self):
+        resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
+        r = self.client.get(add_timestamp('/api/contentnode/?popular=true'), headers=self.headers)
 
         try:
             contents = json.loads(r.content)
-            for kind in self.resources.keys():
-                self.resources[kind] = get_resources(contents, kind)
+            for kind in resources.keys():
+                resources[kind] = get_content_resources(contents, kind)
         except ValueError:
             #  bad response from the server
             pass
+        finally:
+            return resources
 
     def load_resource(self, kind, with_timestamp=False):
         if self.resources[kind]:
