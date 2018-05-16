@@ -134,7 +134,7 @@ def get_content_resources(contents, kind):
     resources = [{'content_id': content['id'],
                   'channel_id': content['channel_id'],
                   'assessment_item_ids': None if kind != 'exercise' else
-                  content['assessmentmetadata'][0]['assessment_item_ids'],
+                  [content['assessment_item_ids'] for content in content['assessmentmetadata']],
                   'files':[file['download_url']
                            for file in content['files']]} for content in contents if content['kind'] == kind]
 
