@@ -231,18 +231,28 @@ class KolibriUserBehavior(TaskSet):
         self.do_contentsessionlog(content_id, channel_id, kind)
 
     def do_contentsessionlog(self, content_id, channel_id, kind):
-        now = datetime.datetime.now()
+        log_url = '/api/contentsessionlog/'
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
+        # create POST request to get the log pk
         data = {
             'channel_id': channel_id,
             'content_id': content_id,
-            'end_timestamp': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'end_timestamp': timestamp,
             'extra_fields': '{}',
             'kind': kind,
             'progress': 0,
-            'start_timestamp': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'start_timestamp': timestamp,
             'time_spent': 0,
             'user': self.current_user['id']
         }
+        r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
+        if not r.status_code == 201:
+            return False
 
-        self.client.post(add_timestamp('/api/contentsessionlog/', first=True), data=data,
-                         headers=self.headers)
+        # create PATCH request to update the log
+        data['pk'] = json.loads(r.content)['pk']
+        log_url_patch = '{log_url}{log_pk}/'.format(log_url=log_url, log_pk=data['pk'])
+        r = self.client.patch(log_url_patch, data=data, headers=self.headers)
+
+        return r.status_code == 200
