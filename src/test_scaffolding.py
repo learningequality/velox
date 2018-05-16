@@ -125,7 +125,8 @@ def launch(classname, base_url, n_clients, rate, n_requests=None, timeout=600):
 def add_timestamp(url, first=False):
     time_token = str(time.time()).replace('.', '')[:13]
     separator = '?' if first else '&'
-    new_url = '{url}{separator}{timestamp}={timestamp}'.format(url=url, separator=separator, timestamp=time_token)
+    new_url = '{url}{separator}{timestamp}={timestamp}'.format(
+        url=url, separator=separator, timestamp=time_token)
     return new_url
 
 
@@ -139,50 +140,63 @@ def get_resources(contents, kind):
 
 class KolibriUserBehavior(TaskSet):
 
+    ADMIN_USERNAME = 'admin'
+    ADMIN_PASSWORD = 'admin'
+
     def on_start(self):
-        # initial login to fetch info:
-        r = self.client.get('/user/')
-        self.csrf_token = r.cookies['csrftoken']
-        self.session_id = r.cookies['sessionid']
         self.resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
         self.kolibri_users = []
-        self.user = None
+        self.current_user = None
+        self.headers = self.get_headers()
         self.get_content()
 
-        if self.log_in('admin', 'admin'):
+        # log in (and log out) with admin user to be able to get the list of all kolibri users
+        if self.log_in(self.ADMIN_USERNAME, self.ADMIN_PASSWORD):
             self.kolibri_users = self.get_kolibri_users()
+            self.log_out()
 
-        # logout:
-        self.client.delete('/api/session/current/',
-                           headers={'X-CSRFToken': self.csrf_token})
-        # get session info to login with random user:
+        if self.kolibri_users:
+            self.current_user = random.choice(self.kolibri_users)
+            print('Current user: {}'.format(self.current_user['username']))
+            self.log_in(self.current_user['username'], facility=self.current_user['facility'])
+        else:
+            # TODO: add appropiate logging
+            print('No learners to run the tests. At least 1 admin + 1 coach + 1 learner are needed')
+            sys.exit(1)
+
+    def log_in(self, username, password=None, facility=None):
+        data = {'username': username}
+
+        if password:
+            data['password'] = password
+        if facility:
+            data['facility'] = facility
+
+        r = self.client.post('/api/session/', data=data, headers=self.headers)
+
+        # update headers with the new set of entries
+        self.set_headers({'X-CSRFToken': r.cookies['csrftoken'],
+                          'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
+                              session_id=r.cookies['sessionid'],
+                              csrf_token=r.cookies['csrftoken'])})
+
+        return r.status_code == 200
+
+    def log_out(self):
+        r = self.client.delete('/api/session/current/', headers=self.headers)
+        return r.status_code == 200
+
+    def get_headers(self):
         r = self.client.get('/user/')
         self.csrf_token = r.cookies['csrftoken']
         self.session_id = r.cookies['sessionid']
-        if self.kolibri_users:
-            self.user = random.choice(self.kolibri_users)
-            print('****************\n\t\t\t\t\tUser:{}'.format(self.user['username']))
-            self.log_in(self.user['username'], '', self.user['facility'])
-        else:
-            # TODO: add appropiate logging
-            print("No learners to run the tests. At least 1 admin + 1 coach + 1 learner are needed")
-            sys.exit(1)
 
-    def log_in(self, username, password, facility=None):
-        login_url = '/api/session/'
+        cookie_header = 'sessionid={session_id}; csrftoken={csrf_token}'.format(
+            session_id=self.session_id, csrf_token=self.csrf_token)
+        return {'X-CSRFToken': self.csrf_token, 'Cookie': cookie_header}
 
-        data = {'username': username, 'password': password}
-        if facility:
-            data['facility'] = facility
-        self.headers = {'X-CSRFToken': self.csrf_token,
-                        'Cookie': 'sessionid={session_id}'.format(session_id=self.session_id)}
-        r = self.client.post(login_url, data=data, headers=self.headers)
-        # received new session data
-        self.csrf_token = r.cookies['csrftoken']
-        self.session_id = r.cookies['sessionid']
-        self.headers = {'X-CSRFToken': self.csrf_token,
-                        'Cookie': 'sessionid={session_id}'.format(session_id=self.session_id)}
-        return r.status_code == 200
+    def set_headers(self, headers):
+        self.headers = headers
 
     def get_kolibri_users(self):
         r = self.client.get('/api/facilityuser/')
@@ -193,7 +207,7 @@ class KolibriUserBehavior(TaskSet):
     def get_content(self):
         r = self.client.get('/learn/#/recommended')
         get_popular_url = add_timestamp('/api/contentnode/?popular=true')
-        r = self.client.get(get_popular_url, headers={'X-CSRFToken': self.csrf_token})
+        r = self.client.get(get_popular_url, headers=self.headers)
 
         try:
             contents = json.loads(r.content)
@@ -217,7 +231,6 @@ class KolibriUserBehavior(TaskSet):
         self.do_contentsessionlog(content_id, channel_id, kind)
 
     def do_contentsessionlog(self, content_id, channel_id, kind):
-        url = '/api/contentsessionlog/'
         now = datetime.datetime.now()
         data = {
             'channel_id': channel_id,
@@ -228,8 +241,8 @@ class KolibriUserBehavior(TaskSet):
             'progress': 0,
             'start_timestamp': now.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'time_spent': 0,
-            'user': self.user['id']
+            'user': self.current_user['id']
         }
 
-        self.client.post(add_timestamp(url, True), data=data, headers=self.headers)
-        # TODO fix getting 403
+        self.client.post(add_timestamp('/api/contentsessionlog/', first=True), data=data,
+                         headers=self.headers)
