@@ -210,9 +210,8 @@ class KolibriUserBehavior(TaskSet):
         if resources:
             resource = random.choice(resources)
             # less fetch all the resources:
-            for file in resource['files']:
-                url = random.choice(resource)
+            for file_url in resource['files']:
                 if with_timestamp:
-                    url = add_timestamp(url)
-                self.client.get(url)
+                    file_url = add_timestamp(file_url)
+                self.client.get(file_url)
             self.do_logging(resource['id'], resource['channel_id'])
