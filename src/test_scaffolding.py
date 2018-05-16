@@ -229,12 +229,13 @@ class KolibriUserBehavior(TaskSet):
 
     def do_logging(self, content_id, channel_id, kind):
         self.do_contentsessionlog(content_id, channel_id, kind)
+        self.do_contentsummarylog(content_id, channel_id, kind)
 
     def do_contentsessionlog(self, content_id, channel_id, kind):
         log_url = '/api/contentsessionlog/'
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
         # create POST request to get the log pk
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         data = {
             'channel_id': channel_id,
             'content_id': content_id,
@@ -253,6 +254,50 @@ class KolibriUserBehavior(TaskSet):
         # create PATCH request to update the log
         data['pk'] = json.loads(r.content)['pk']
         log_url_patch = '{log_url}{log_pk}/'.format(log_url=log_url, log_pk=data['pk'])
+        r = self.client.patch(log_url_patch, data=data, headers=self.headers)
+
+        return r.status_code == 200
+
+    def do_contentsummarylog(self, content_id, channel_id, kind):
+        log_url = '/api/contentsummarylog/'
+
+        # set general data object
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        data = {
+            'channel_id': channel_id,
+            'content_id': content_id,
+            'end_timestamp': timestamp,
+            'extra_fields': '{}',
+            'kind': kind,
+            'progress': 0,
+            'start_timestamp': timestamp,
+            'time_spent': 0,
+            'user': self.current_user['id'],
+            'completion_timestamp': None,
+            'currentmasterylog': None
+        }
+
+        # create a GET request to check if log already exists
+        log_url_get = '{log_url}?content_id={content_id}&user_id={user_id}'.format(
+            log_url=log_url, content_id=content_id, user_id=self.current_user['id'])
+        r = self.client.get(add_timestamp(log_url_get))
+        if not r.status_code == 200:
+            return False
+
+        contents = json.loads(r.content)
+        if len(contents) > 0:
+            # extract log pk from the GET response
+            log_pk = contents[0]['pk']
+        else:
+            # create summarylog if it doesn't exists yet
+            r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
+            if not r.status_code == 201:
+                return False
+            log_pk = json.loads(r.content)['pk']
+
+        # create PATCH request to update the log
+        data['pk'] = log_pk
+        log_url_patch = '{log_url}{log_pk}/'.format(log_url=log_url, log_pk=log_pk)
         r = self.client.patch(log_url_patch, data=data, headers=self.headers)
 
         return r.status_code == 200
