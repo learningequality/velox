@@ -148,9 +148,8 @@ class KolibriUserBehavior(TaskSet):
         self.current_user = None
         self.headers = self.get_headers()
         self.resources = self.get_resources()
-
         # log in (and log out) with admin user to be able to get the list of all kolibri users
-        if self.log_in(self.ADMIN_USERNAME, self.ADMIN_PASSWORD):
+        if self.log_in(KolibriUserBehavior.ADMIN_USERNAME, KolibriUserBehavior.ADMIN_PASSWORD):
             self.kolibri_users = self.get_kolibri_users()
             self.log_out()
 
