@@ -65,7 +65,7 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run(base_url='http://kolibribeta.learningequality.org', learners=25):
+def run(base_url='http://127.0.0.1:8000', learners=1):
     # rate= 5
     # total number of requests=100
     launch(WebsiteUser, base_url, learners, 5, 100, timeout=30)

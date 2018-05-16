@@ -133,8 +133,11 @@ def add_timestamp(url, first=False):
 def get_content_resources(contents, kind):
     resources = [{'content_id': content['id'],
                   'channel_id': content['channel_id'],
+                  'assessment_item_ids': None if kind != 'exercise' else
+                  content['assessmentmetadata'][0]['assessment_item_ids'],
                   'files':[file['download_url']
                            for file in content['files']]} for content in contents if content['kind'] == kind]
+
     return resources
 
 
