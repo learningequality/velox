@@ -241,7 +241,66 @@ class KolibriUserBehavior(TaskSet):
         return r.status_code == 200
 
     def build_attempts(self, exercise_contents, previous_attempt=None):
-        pass
+        start = datetime.datetime.now()
+        end = datetime.datetime.now()
+        completion = datetime.datetime.now() if previous_attempt else None
+        time_spent = random.randint(200, 10000)
+        item_id = None
+        complete = True if previous_attempt else False
+        questions_type = list(exercise_contents['question']['widgets'].keys())[0]
+        questions = []
+        masterylog = sessionlog = None
+        selected_choices = []
+        choice_states = []
+
+        states_payload = {'selected': False, 'highlighted': False, 'rationaleShown': False,
+                          'correctnessShown': False, 'readOnly': False}
+        exercise_options = exercise_contents['question']['widgets'][questions_type]['options']
+        type_of_choices = 'choices' if 'choices' in exercise_options else 'answers'
+        choices = exercise_options.get(type_of_choices, [])
+
+        for index, choice in enumerate(choices):
+            if type_of_choices == 'choices':
+                question = {'originalIndex': index,
+                            'correct': choice.get('correct', None),
+                            'content': choice.get('content', None),
+                            'images': choice.get('images', None)}
+                selected_choices.append(choice.get('correct', None))
+                choice_states.append(states_payload)
+            else:
+                question = {'value': choice.get('value', 0), 'status': 'correct', 'message': '', 'strict': False,
+                            'simplify': True, 'maxError': 0, 'answerForms': choice.get('answerForms', [])}
+
+            questions.append(question)
+
+
+
+        if type_of_choices == 'choices':
+            answer = {'numCorrect': 1, 'hasNoneOfTheAbove': False,
+                      'multipleSelect': False, 'deselectEnabled': False,
+                      'choices': questions,
+                      'selectedChoices': selected_choices,
+                      'choiceStates': choice_states}
+        else:
+            answer = {'static': False, 'answers': questions, 'size': 'normal', 'coefficient': False, 'labelText': ''}
+
+        interaction_history = [{'type': 'hint', 'answer': answer, 'timestamp': end}]
+        if previous_attempt:
+            for attempt in random.randint(1, 5):
+                new_attempt = [{'type': 'answer', 'answer': answer, 'timestamp': end}]
+                interaction_history.append(new_attempt)
+
+        payload = {'id': item_id, 'user': self.current_user['id'],
+                   'masterylog': masterylog, 'sessionlog': sessionlog,
+                   'start_timestamp': start, 'completion_timestamp': completion, 'end_timestamp': end,
+                   'item': item_id, 'complete': complete,
+                   'time_spent': time_spent, 'correct': 0,
+                   'answer': {'question': {questions_type: answer}, 'hints': []},
+                   'simple_answer': '',
+                   'interaction_history': interaction_history
+                   }
+
+        return payload
 
     def do_userprogress(self):
         log_url = '/api/userprogress/{user_id}/'.format(user_id=self.current_user['id'])
