@@ -141,6 +141,10 @@ def get_content_resources(contents, kind):
     return resources
 
 
+def build_attempts(exercise_contents, previous_attempt=None):
+    pass
+
+
 class KolibriUserBehavior(TaskSet):
 
     ADMIN_USERNAME = 'admin'
@@ -227,13 +231,17 @@ class KolibriUserBehavior(TaskSet):
                 if with_timestamp:
                     file_url = add_timestamp(file_url)
                 self.client.get(file_url)
-            self.do_logging(resource['content_id'], resource['channel_id'], kind)
+            self.do_logging(resource, kind)
 
-    def do_logging(self, content_id, channel_id, kind):
+    def do_logging(self, resource, kind):
+        content_id = resource['content_id']
+        channel_id = resource['channel_id']
         self.do_contentsessionlog(content_id, channel_id, kind)
         self.do_contentsummarylog(content_id, channel_id, kind)
         # `do_masterylog` is called implicitly from `do_contentsummarylog`
         self.do_userprogress()
+        if kind == 'exercise':
+            self.do_attemptlog(resource)
 
     def do_contentsessionlog(self, content_id, channel_id, kind):
         log_url = '/api/contentsessionlog/'
@@ -330,6 +338,39 @@ class KolibriUserBehavior(TaskSet):
         r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
 
         return r.status_code == 201, None
+
+    def do_attemptlog(self, resource):
+        perseus = ''
+        for file in resource['files']:
+            if file.endswith('.perseus'):
+                perseus = file
+                break
+        if not resource['assessment_item_ids'] or not perseus:
+            return False
+        perseus_data = perseus.split("/")
+        for data in perseus_data:
+            if data.endswith('.perseus'):
+                perseus = data
+                break
+        assessment_id = random.choice(resource['assessment_item_ids'][0])
+        assessment_link = '/zipcontent/{perseus}/{assessment_id}.json'.format(perseus=perseus,
+                                                                              assessment_id=assessment_id)
+        r = self.client.get(add_timestamp(assessment_link, first=True), headers=self.headers)
+        if not r.status_code == 200:
+            return False
+        exercise_contents = json.loads(r.content)
+        exercise_attempts = build_attempts(exercise_contents, previous_attempt=None)
+        attempt_url = add_timestamp('/api/attemptlog/', first=True)
+        r = self.client.post(attempt_url, data=exercise_attempts, headers=self.headers)
+        if not r.status_code == 200:
+            return False
+
+        exercise_attempts = build_attempts(exercise_contents, previous_attempt=json.loads(r.content))
+        attempt_id = exercise_attempts['id']
+        attempt_url_patch = '/api/attemptlog/{}'.format(attempt_id)
+        r = self.client.patch(attempt_url_patch, data=exercise_attempts, headers=self.headers)
+
+        return r.status_code == 200
 
     def do_userprogress(self):
         log_url = '/api/userprogress/{user_id}/'.format(user_id=self.current_user['id'])
