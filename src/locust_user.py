@@ -254,28 +254,33 @@ class KolibriUserBehavior(TaskSet):
             return False
         exercise_contents = json.loads(r.content)
         exercise_attempts = self.build_attempts(exercise_contents, resource, previous_attempt=None)
+        # First attemptlog to receive id information
         attempt_url = self.add_timestamp('/api/attemptlog/', first=True)
         r = self.client.post(attempt_url, data=exercise_attempts, headers=self.headers)
-        if not r.status_code == 200:
+        if not r.status_code == 201:
             return False
 
         exercise_attempts = self.build_attempts(exercise_contents, resource, previous_attempt=json.loads(r.content))
         attempt_id = exercise_attempts['id']
-        attempt_url_patch = '/api/attemptlog/{}'.format(attempt_id)
+        attempt_url_patch = '/api/attemptlog/{}/'.format(attempt_id)
+        # last attemptlog after the exercise is finished
         r = self.client.patch(attempt_url_patch, data=exercise_attempts, headers=self.headers)
-
         return r.status_code == 200
 
     def build_attempts(self, exercise_contents, resource, previous_attempt=None):
         start = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        if previous_attempt:
+            start = previous_attempt['start_timestamp']
         end = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         completion = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ') if previous_attempt else None
         time_spent = random.randint(200, 10000)
         item_id = resource['content_id']
+        attempt_id = None if not previous_attempt else previous_attempt['id']
         complete = True if previous_attempt else False
         questions_type = list(exercise_contents['question']['widgets'].keys())[0]
         questions = []
-        masterylog = sessionlog = None
+        masterylog = self.logs_ids['masterylog_id']
+        sessionlog = self.logs_ids['contentsessionlog_id']
         selected_choices = []
         choice_states = []
 
@@ -284,7 +289,6 @@ class KolibriUserBehavior(TaskSet):
         exercise_options = exercise_contents['question']['widgets'][questions_type]['options']
         type_of_choices = 'choices' if 'choices' in exercise_options else 'answers'
         choices = exercise_options.get(type_of_choices, [])
-
         for index, choice in enumerate(choices):
             if type_of_choices == 'choices':
                 question = {'originalIndex': index,
@@ -299,28 +303,31 @@ class KolibriUserBehavior(TaskSet):
             questions.append(question)
 
         if type_of_choices == 'choices':
-            answer = {'numCorrect': 1, 'hasNoneOfTheAbove': False,
-                      'multipleSelect': False, 'deselectEnabled': False,
-                      'choices': questions,
-                      'selectedChoices': selected_choices,
-                      'choiceStates': choice_states}
+            part_answer = {'numCorrect': 1, 'hasNoneOfTheAbove': False,
+                           'multipleSelect': False, 'deselectEnabled': False,
+                           'choices': questions,
+                           'selectedChoices': selected_choices,
+                           'choiceStates': choice_states}
         else:
-            answer = {'static': False, 'answers': questions, 'size': 'normal', 'coefficient': False, 'labelText': ''}
+            part_answer = {'static': False, 'answers': questions, 'size': 'normal',
+                           'coefficient': False, 'labelText': ''}
+        answer = json.dumps({'question': {questions_type: part_answer}, 'hints': []})
 
         interaction_history = [{'type': 'hint', 'answer': answer, 'timestamp': end}]
         if previous_attempt:
-            for attempt in random.randint(1, 5):
+            # generate a random number of intents
+            for attempt in range(random.randint(1, 5)):
                 new_attempt = [{'type': 'answer', 'answer': answer, 'timestamp': end}]
                 interaction_history.append(new_attempt)
 
-        payload = {'id': item_id, 'user': self.current_user['id'],
+        payload = {'id': attempt_id, 'user': self.current_user['id'],
                    'masterylog': masterylog, 'sessionlog': sessionlog,
                    'start_timestamp': start, 'completion_timestamp': completion, 'end_timestamp': end,
                    'item': item_id, 'complete': complete,
                    'time_spent': time_spent, 'correct': 0,
-                   'answer': {'question': {questions_type: answer}, 'hints': []},
+                   'answer': answer,
                    'simple_answer': '',
-                   'interaction_history': interaction_history
+                   'interaction_history': json.dumps(interaction_history)
                    }
 
         return payload
