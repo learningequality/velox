@@ -19,10 +19,12 @@ class KolibriUserBehavior(TaskSet):
     ADMIN_PASSWORD = 'admin'
 
     def on_start(self):
+        self.logs_ids = self.get_logs_ids_dict()
         self.kolibri_users = []
         self.current_user = None
         self.headers = self.get_headers()
         self.resources = self.get_resources()
+
         # log in (and log out) with admin user to be able to get the list of all kolibri users
         if self.log_in(KolibriUserBehavior.ADMIN_USERNAME, KolibriUserBehavior.ADMIN_PASSWORD):
             self.kolibri_users = self.get_kolibri_users()
@@ -101,13 +103,28 @@ class KolibriUserBehavior(TaskSet):
                 self.client.get(file_url)
             self.do_logging(resource, kind)
 
+    def get_logs_ids_dict(self):
+        return {
+            'contentsessionlog_id': None,
+            'masterylog_id': None,
+            'contentsummarylog_id': None,
+            'attemptlog_id': None
+        }
+
     def do_logging(self, resource, kind):
         content_id = resource['content_id']
         channel_id = resource['channel_id']
+
         self.do_contentsessionlog(content_id, channel_id, kind)
         self.do_contentsummarylog(content_id, channel_id, kind)
-        # `do_masterylog` is called implicitly from `do_contentsummarylog`
         self.do_userprogress()
+
+        # log masterylog only if it hasn't been logged yet
+
+        if not self.logs_ids.get('masterylog_id'):
+            self.do_masterylog(content_id, channel_id, kind)
+
+        # log attemptlog only if content type is exercise
         if kind == 'exercise':
             self.do_attemptlog(resource)
 
@@ -135,6 +152,9 @@ class KolibriUserBehavior(TaskSet):
         data['pk'] = json.loads(r.content)['pk']
         log_url_patch = '{log_url}{log_id}/'.format(log_url=log_url, log_id=data['pk'])
         r = self.client.patch(log_url_patch, data=data, headers=self.headers)
+
+        # set log id for other log methods to use if necessary
+        self.logs_ids['contentsessionlog_id'] = data['pk']
 
         return r.status_code == 200
 
@@ -175,24 +195,23 @@ class KolibriUserBehavior(TaskSet):
                 return False
             log_id = json.loads(r.content)['pk']
 
-            # create a new masterylog here because we can only have one per summarylog
-            # so this is the safest and easiest way (for now) to ensure that
-            self.do_masterylog(content_id, channel_id, kind, log_id)
-
         # create PATCH request to update the log
         data['pk'] = log_id
         log_url_patch = '{log_url}{log_id}/'.format(log_url=log_url, log_id=log_id)
         r = self.client.patch(log_url_patch, data=data, headers=self.headers)
 
+        # set log id for other log methods to use if necessary
+        self.logs_ids['contentsummarylog_id'] = log_id
+
         return r.status_code == 200
 
-    def do_masterylog(self, content_id, channel_id, kind, summarylog_id):
+    def do_masterylog(self, content_id, channel_id, kind):
         log_url = '/api/masterylog/'
 
         timestamp = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         data = {
             'user': self.current_user['id'],
-            'summarylog': summarylog_id,
+            'summarylog': self.logs_ids.get('contentsummarylog_id'),
             'start_timestamp': timestamp,
             'completion_timestamp': None,
             'end_timestamp': None,
@@ -205,7 +224,14 @@ class KolibriUserBehavior(TaskSet):
         }
         r = self.client.post(self.add_timestamp(log_url, first=True), data=data, headers=self.headers)
 
-        return r.status_code == 201, None
+        if not r.status_code == 201:
+            return False
+
+        log_id = json.loads(r.content)['id']
+        # set log id for other log methods to use if necessary
+        self.logs_ids['masterylog_id'] = log_id
+
+        return True
 
     def do_attemptlog(self, resource):
         perseus = ''
