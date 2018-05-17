@@ -66,9 +66,9 @@ class WebsiteUser(HttpLocust):
 
 
 def run(base_url='http://127.0.0.1:8000', learners=1):
-    # rate= 5
-    # total number of requests=100
-    launch(WebsiteUser, base_url, learners, 5, 100, timeout=30)
+    rate = 5
+    total_reqs = 100
+    launch(WebsiteUser, base_url, learners, rate, total_reqs, timeout=30)
 
 
 if __name__ == '__main__':

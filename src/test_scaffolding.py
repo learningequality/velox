@@ -232,11 +232,12 @@ class KolibriUserBehavior(TaskSet):
     def do_logging(self, content_id, channel_id, kind):
         self.do_contentsessionlog(content_id, channel_id, kind)
         self.do_contentsummarylog(content_id, channel_id, kind)
+        # `do_masterylog` is called implicitly from `do_contentsummarylog`
 
     def do_contentsessionlog(self, content_id, channel_id, kind):
         log_url = '/api/contentsessionlog/'
 
-        # create POST request to get the log pk
+        # create POST request to get the log id
         timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         data = {
             'channel_id': channel_id,
@@ -255,7 +256,7 @@ class KolibriUserBehavior(TaskSet):
 
         # create PATCH request to update the log
         data['pk'] = json.loads(r.content)['pk']
-        log_url_patch = '{log_url}{log_pk}/'.format(log_url=log_url, log_pk=data['pk'])
+        log_url_patch = '{log_url}{log_id}/'.format(log_url=log_url, log_id=data['pk'])
         r = self.client.patch(log_url_patch, data=data, headers=self.headers)
 
         return r.status_code == 200
@@ -263,7 +264,7 @@ class KolibriUserBehavior(TaskSet):
     def do_contentsummarylog(self, content_id, channel_id, kind):
         log_url = '/api/contentsummarylog/'
 
-        # set general data object
+        # set general data object (for PATCH and optionally POST requests)
         timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         data = {
             'channel_id': channel_id,
@@ -279,7 +280,7 @@ class KolibriUserBehavior(TaskSet):
             'currentmasterylog': None
         }
 
-        # create a GET request to check if log already exists
+        # create a GET request to check if the log already exists
         log_url_get = '{log_url}?content_id={content_id}&user_id={user_id}'.format(
             log_url=log_url, content_id=content_id, user_id=self.current_user['id'])
         r = self.client.get(add_timestamp(log_url_get))
@@ -288,18 +289,43 @@ class KolibriUserBehavior(TaskSet):
 
         contents = json.loads(r.content)
         if len(contents) > 0:
-            # extract log pk from the GET response
-            log_pk = contents[0]['pk']
+            # log exists, extract the log id from the GET response
+            log_id = contents[0]['pk']
         else:
             # create summarylog if it doesn't exists yet
             r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
             if not r.status_code == 201:
                 return False
-            log_pk = json.loads(r.content)['pk']
+            log_id = json.loads(r.content)['pk']
+
+            # create a new masterylog here because we can only have one per summarylog
+            # so this is the safest and easiest way (for now) to ensure that
+            self.do_masterylog(content_id, channel_id, kind, log_id)
 
         # create PATCH request to update the log
-        data['pk'] = log_pk
-        log_url_patch = '{log_url}{log_pk}/'.format(log_url=log_url, log_pk=log_pk)
+        data['pk'] = log_id
+        log_url_patch = '{log_url}{log_id}/'.format(log_url=log_url, log_id=log_id)
         r = self.client.patch(log_url_patch, data=data, headers=self.headers)
 
         return r.status_code == 200
+
+    def do_masterylog(self, content_id, channel_id, kind, summarylog_id):
+        log_url = '/api/masterylog/'
+
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        data = {
+            'user': self.current_user['id'],
+            'summarylog': summarylog_id,
+            'start_timestamp': timestamp,
+            'completion_timestamp': None,
+            'end_timestamp': None,
+            'mastery_level': 1,
+            'complete': False,
+            'responsehistory': [],
+            'pastattempts': [],
+            'totalattempts': 0,
+            'mastery_criterion': '{}'
+        }
+        r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
+
+        return r.status_code == 201, None
