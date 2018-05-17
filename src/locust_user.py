@@ -4,12 +4,12 @@ User class for the locust scenario runner
 """
 from __future__ import print_function, unicode_literals
 
-import datetime
 import json
 import random
 import sys
 import time
 
+from datetime import datetime as dt
 from locust import TaskSet
 
 
@@ -115,7 +115,7 @@ class KolibriUserBehavior(TaskSet):
         log_url = '/api/contentsessionlog/'
 
         # create POST request to get the log id
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        timestamp = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         data = {
             'channel_id': channel_id,
             'content_id': content_id,
@@ -142,7 +142,7 @@ class KolibriUserBehavior(TaskSet):
         log_url = '/api/contentsummarylog/'
 
         # set general data object (for PATCH and optionally POST requests)
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        timestamp = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         data = {
             'channel_id': channel_id,
             'content_id': content_id,
@@ -189,7 +189,7 @@ class KolibriUserBehavior(TaskSet):
     def do_masterylog(self, content_id, channel_id, kind, summarylog_id):
         log_url = '/api/masterylog/'
 
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        timestamp = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         data = {
             'user': self.current_user['id'],
             'summarylog': summarylog_id,
@@ -227,25 +227,25 @@ class KolibriUserBehavior(TaskSet):
         if not r.status_code == 200:
             return False
         exercise_contents = json.loads(r.content)
-        exercise_attempts = self.build_attempts(exercise_contents, previous_attempt=None)
+        exercise_attempts = self.build_attempts(exercise_contents, resource, previous_attempt=None)
         attempt_url = self.add_timestamp('/api/attemptlog/', first=True)
         r = self.client.post(attempt_url, data=exercise_attempts, headers=self.headers)
         if not r.status_code == 200:
             return False
 
-        exercise_attempts = self.build_attempts(exercise_contents, previous_attempt=json.loads(r.content))
+        exercise_attempts = self.build_attempts(exercise_contents, resource, previous_attempt=json.loads(r.content))
         attempt_id = exercise_attempts['id']
         attempt_url_patch = '/api/attemptlog/{}'.format(attempt_id)
         r = self.client.patch(attempt_url_patch, data=exercise_attempts, headers=self.headers)
 
         return r.status_code == 200
 
-    def build_attempts(self, exercise_contents, previous_attempt=None):
-        start = datetime.datetime.now()
-        end = datetime.datetime.now()
-        completion = datetime.datetime.now() if previous_attempt else None
+    def build_attempts(self, exercise_contents, resource, previous_attempt=None):
+        start = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        end = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        completion = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ') if previous_attempt else None
         time_spent = random.randint(200, 10000)
-        item_id = None
+        item_id = resource['content_id']
         complete = True if previous_attempt else False
         questions_type = list(exercise_contents['question']['widgets'].keys())[0]
         questions = []
@@ -270,10 +270,7 @@ class KolibriUserBehavior(TaskSet):
             else:
                 question = {'value': choice.get('value', 0), 'status': 'correct', 'message': '', 'strict': False,
                             'simplify': True, 'maxError': 0, 'answerForms': choice.get('answerForms', [])}
-
             questions.append(question)
-
-
 
         if type_of_choices == 'choices':
             answer = {'numCorrect': 1, 'hasNoneOfTheAbove': False,
