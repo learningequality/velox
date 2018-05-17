@@ -29,14 +29,16 @@ from locust import HttpLocust, task
 
 
 try:
-    from test_scaffolding import launch, KolibriUserBehavior
+    from locust_user import KolibriUserBehavior
+    from locust_wrapper import launch
 except ImportError:
     # the test is being run out of velox environment
     # and velox package is not installed
     import os
     import sys
     sys.path.append(os.path.join(os.getcwd(), 'src'))
-    from test_scaffolding import launch, KolibriUserBehavior
+    from locust_user import KolibriUserBehavior
+    from locust_wrapper import launch
 
 
 class UserBehavior(KolibriUserBehavior):

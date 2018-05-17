@@ -1,148 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Common code for the tests.
-All tests using locust.io will need to create a HttpLocust class and run
-the tests doing:
-
-    from test_scaffolding import launch
-    launch(classname, n_clients, rate, run_time):
-
+User class for the locust scenario runner
 """
 from __future__ import print_function, unicode_literals
 
 import datetime
-import gevent
-import inspect
 import json
-import os
 import random
 import sys
 import time
 
-from argparse import Namespace
-from locust.runners import LocalLocustRunner
-from locust import events, runners
 from locust import TaskSet
-from locust.stats import print_error_report, print_percentile_stats, print_stats, write_stat_csvs, stats_writer
-from locust.log import setup_logging
-
-
-def spawn_run_time_limit_greenlet(options):
-    """
-    To stop each test gevent greenlet after timeout passes
-    """
-    def timelimit_stop():
-        runners.locust_runner.stop()
-    gevent.spawn_later(options.run_time, timelimit_stop)
-
-
-def shutdown(options, code=0):
-    """
-    Shut down locust by firing quitting event, printing/writing stats and exiting
-    """
-    if runners.locust_runner is not None:
-        runners.locust_runner.stop()
-
-    events.quitting.fire(reverse=True)
-    print_stats(runners.locust_runner.request_stats)
-    print_percentile_stats(runners.locust_runner.request_stats)
-    if options.csvfilebase:
-        write_stat_csvs(options.csvfilebase)
-    print_error_report()
-
-
-def get_test_calling():
-    """
-    Finds out the name of the test being run
-    :returns: A string with the name of the module importing this module
-    """
-    frame_records = inspect.stack()[2]
-    return inspect.getmodulename(frame_records[1])
-
-
-def get_csv_filename():
-    """
-    Returns the filename for the csv stats export
-    :returns: A string with the filename for the csv stats export
-    """
-    calling_module = get_test_calling()
-    timestamp = datetime.datetime.now().strftime('%Y_%m_%d__%H_%M_%S__%f')
-    return '{timestamp}_{mod}'.format(mod=calling_module, timestamp=timestamp)
-
-
-def get_or_create_output_dir():
-    """
-    Gets or creates output directory in which to store the locust reports
-    """
-    output_dir = os.path.join('output', 'locust')
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    return output_dir
-
-
-def launch(classname, base_url, n_clients, rate, n_requests=None, timeout=600):
-    """
-    Launches the tests
-    :param: classname: class inherited from HttpLocust defining the test
-    :param: base_url: server and port of the url to request
-    :param: n_clients: Number of concurrent users
-    :param: rate: The rate per second in which clients are spawned
-    :param: n_requests: Total number of requests to be done
-    :param: timeout: Stop testing after the specified amount of seconds
-    """
-    options = Namespace(**{
-        'host': base_url,
-        'num_clients': n_clients,
-        'hatch_rate': rate,
-        'num_requests': n_requests if n_requests else n_clients * 10,
-        'run_time': timeout,
-        'no_web': True,
-        'no_reset_stats': True,
-        'csvfilebase': os.path.join(get_or_create_output_dir(), get_csv_filename())
-    })
-
-    setup_logging('INFO', None)
-    runners.locust_runner = LocalLocustRunner([classname], options)
-
-    # spawn client spawning/hatching greenlets:
-    runners.locust_runner.start_hatching(wait=True)
-    main_greenlet = runners.locust_runner.greenlet
-    spawn_run_time_limit_greenlet(options)
-
-    if options.csvfilebase:
-        gevent.spawn(stats_writer, options.csvfilebase)
-    try:
-        main_greenlet.join()
-        code = 0
-        if len(runners.locust_runner.errors):
-            code = 1
-        shutdown(options, code=code)
-    except KeyboardInterrupt:
-        shutdown(options, 0)
-
-
-def add_timestamp(url, first=False):
-    time_token = str(time.time()).replace('.', '')[:13]
-    separator = '?' if first else '&'
-    new_url = '{url}{separator}{timestamp}={timestamp}'.format(
-        url=url, separator=separator, timestamp=time_token)
-    return new_url
-
-
-def get_content_resources(contents, kind):
-    resources = [{'content_id': content['id'],
-                  'channel_id': content['channel_id'],
-                  'assessment_item_ids': None if kind != 'exercise' else
-                  [content['assessment_item_ids'] for content in content['assessmentmetadata']],
-                  'files':[file['download_url']
-                           for file in content['files']]} for content in contents if content['kind'] == kind]
-
-    return resources
-
-
-def build_attempts(exercise_contents, previous_attempt=None):
-    pass
 
 
 class KolibriUserBehavior(TaskSet):
@@ -211,12 +79,12 @@ class KolibriUserBehavior(TaskSet):
 
     def get_resources(self):
         resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
-        r = self.client.get(add_timestamp('/api/contentnode/?popular=true'), headers=self.headers)
+        r = self.client.get(self.add_timestamp('/api/contentnode/?popular=true'), headers=self.headers)
 
         try:
             contents = json.loads(r.content)
             for kind in resources.keys():
-                resources[kind] = get_content_resources(contents, kind)
+                resources[kind] = self.get_content_resources(contents, kind)
         except ValueError:
             #  bad response from the server
             pass
@@ -229,7 +97,7 @@ class KolibriUserBehavior(TaskSet):
             # less fetch all the resources:
             for file_url in resource['files']:
                 if with_timestamp:
-                    file_url = add_timestamp(file_url)
+                    file_url = self.add_timestamp(file_url)
                 self.client.get(file_url)
             self.do_logging(resource, kind)
 
@@ -259,7 +127,7 @@ class KolibriUserBehavior(TaskSet):
             'time_spent': 0,
             'user': self.current_user['id']
         }
-        r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
+        r = self.client.post(self.add_timestamp(log_url, first=True), data=data, headers=self.headers)
         if not r.status_code == 201:
             return False
 
@@ -292,7 +160,7 @@ class KolibriUserBehavior(TaskSet):
         # create a GET request to check if the log already exists
         log_url_get = '{log_url}?content_id={content_id}&user_id={user_id}'.format(
             log_url=log_url, content_id=content_id, user_id=self.current_user['id'])
-        r = self.client.get(add_timestamp(log_url_get))
+        r = self.client.get(self.add_timestamp(log_url_get))
         if not r.status_code == 200:
             return False
 
@@ -302,7 +170,7 @@ class KolibriUserBehavior(TaskSet):
             log_id = contents[0]['pk']
         else:
             # create summarylog if it doesn't exists yet
-            r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
+            r = self.client.post(self.add_timestamp(log_url, first=True), data=data, headers=self.headers)
             if not r.status_code == 201:
                 return False
             log_id = json.loads(r.content)['pk']
@@ -335,7 +203,7 @@ class KolibriUserBehavior(TaskSet):
             'totalattempts': 0,
             'mastery_criterion': '{}'
         }
-        r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
+        r = self.client.post(self.add_timestamp(log_url, first=True), data=data, headers=self.headers)
 
         return r.status_code == 201, None
 
@@ -355,25 +223,45 @@ class KolibriUserBehavior(TaskSet):
         assessment_id = random.choice(resource['assessment_item_ids'][0])
         assessment_link = '/zipcontent/{perseus}/{assessment_id}.json'.format(perseus=perseus,
                                                                               assessment_id=assessment_id)
-        r = self.client.get(add_timestamp(assessment_link, first=True), headers=self.headers)
+        r = self.client.get(self.add_timestamp(assessment_link, first=True), headers=self.headers)
         if not r.status_code == 200:
             return False
         exercise_contents = json.loads(r.content)
-        exercise_attempts = build_attempts(exercise_contents, previous_attempt=None)
-        attempt_url = add_timestamp('/api/attemptlog/', first=True)
+        exercise_attempts = self.build_attempts(exercise_contents, previous_attempt=None)
+        attempt_url = self.add_timestamp('/api/attemptlog/', first=True)
         r = self.client.post(attempt_url, data=exercise_attempts, headers=self.headers)
         if not r.status_code == 200:
             return False
 
-        exercise_attempts = build_attempts(exercise_contents, previous_attempt=json.loads(r.content))
+        exercise_attempts = self.build_attempts(exercise_contents, previous_attempt=json.loads(r.content))
         attempt_id = exercise_attempts['id']
         attempt_url_patch = '/api/attemptlog/{}'.format(attempt_id)
         r = self.client.patch(attempt_url_patch, data=exercise_attempts, headers=self.headers)
 
         return r.status_code == 200
 
+    def build_attempts(self, exercise_contents, previous_attempt=None):
+        pass
+
     def do_userprogress(self):
         log_url = '/api/userprogress/{user_id}/'.format(user_id=self.current_user['id'])
 
-        r = self.client.get(add_timestamp(log_url, first=True), headers=self.headers)
+        r = self.client.get(self.add_timestamp(log_url, first=True), headers=self.headers)
         return r.status_code == 200
+
+    def add_timestamp(self, url, first=False):
+        time_token = str(time.time()).replace('.', '')[:13]
+        separator = '?' if first else '&'
+        new_url = '{url}{separator}{timestamp}={timestamp}'.format(
+            url=url, separator=separator, timestamp=time_token)
+        return new_url
+
+    def get_content_resources(self, contents, kind):
+        resources = [{'content_id': content['id'],
+                      'channel_id': content['channel_id'],
+                      'assessment_item_ids': None if kind != 'exercise' else
+                      [content['assessment_item_ids'] for content in content['assessmentmetadata']],
+                      'files':[file['download_url']
+                               for file in content['files']]} for content in contents if content['kind'] == kind]
+
+        return resources

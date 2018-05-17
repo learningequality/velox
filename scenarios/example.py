@@ -16,7 +16,7 @@ def run(base_url='http://kolibridemo.learningequality.org', users=3):
     random.seed()
     for _ in range(random.randrange(5)):
 
-        print("testing")
+        print('testing')
         time.sleep(random.randrange(4))
 
 
