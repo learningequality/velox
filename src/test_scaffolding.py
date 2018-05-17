@@ -233,6 +233,7 @@ class KolibriUserBehavior(TaskSet):
         self.do_contentsessionlog(content_id, channel_id, kind)
         self.do_contentsummarylog(content_id, channel_id, kind)
         # `do_masterylog` is called implicitly from `do_contentsummarylog`
+        self.do_userprogress()
 
     def do_contentsessionlog(self, content_id, channel_id, kind):
         log_url = '/api/contentsessionlog/'
@@ -329,3 +330,9 @@ class KolibriUserBehavior(TaskSet):
         r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
 
         return r.status_code == 201, None
+
+    def do_userprogress(self):
+        log_url = '/api/userprogress/{user_id}/'.format(user_id=self.current_user['id'])
+
+        r = self.client.get(add_timestamp(log_url, first=True), headers=self.headers)
+        return r.status_code == 200
