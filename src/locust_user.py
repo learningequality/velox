@@ -4,6 +4,7 @@ User class for the locust scenario runner
 """
 from __future__ import print_function, unicode_literals
 
+import gevent
 import json
 import random
 import sys
@@ -17,21 +18,49 @@ class KolibriUserBehavior(TaskSet):
 
     ADMIN_USERNAME = 'admin'
     ADMIN_PASSWORD = 'admin'
+    KOLIBRI_USERS = []
 
-    def on_start(self):
-        self.logs_ids = self.get_logs_ids_dict()
-        self.kolibri_users = []
-        self.current_user = None
-        self.headers = self.get_headers()
-        self.resources = self.get_resources()
+    _setup_has_run = False  # internal state to see if we have already run
+    _lock = gevent.lock.Semaphore()  # lock to make sure setup is only run once
+
+    """
+    Helper method to wrap the locking code away from the `on_start` method
+    To add actual code which needs to be run before all tasks, use `setup`
+    """
+    def taskset_setup(self):
+        self._lock.acquire()
+        if self._setup_has_run is False:
+            KolibriUserBehavior._setup_has_run = True
+            self.setup()
+        self._lock.release()
+
+    """
+    Evalutes setup code once per runner session, hackish solution for the current
+    locust.io version - in the next stable version, this will be supported out of the box
+    """
+    def setup(self):
+        # retrieve admin-only headers to use with a single request to retrieve Kolibri users
+        admin_headers = self.get_headers()
 
         # log in (and log out) with admin user to be able to get the list of all kolibri users
-        if self.log_in(KolibriUserBehavior.ADMIN_USERNAME, KolibriUserBehavior.ADMIN_PASSWORD):
-            self.kolibri_users = self.get_kolibri_users()
-            self.log_out()
+        # and set the result to the static KOLIBRI_USERS to avoid repeating these requests
+        if self.log_in(KolibriUserBehavior.ADMIN_USERNAME, KolibriUserBehavior.ADMIN_PASSWORD,
+                       headers=admin_headers):
+            KolibriUserBehavior.KOLIBRI_USERS = self.get_kolibri_users()
+            self.log_out(headers=admin_headers)
 
-        if self.kolibri_users:
-            self.current_user = random.choice(self.kolibri_users)
+    def on_start(self):
+        # implicit call required to be able to run code before running the tasks
+        self.taskset_setup()
+
+        # retrieve headers for the current user
+        self.headers = self.get_headers()
+        self.current_user = None
+        self.logs_ids = self.get_logs_ids_dict()
+        self.resources = self.get_resources()
+
+        if KolibriUserBehavior.KOLIBRI_USERS:
+            self.current_user = random.choice(KolibriUserBehavior.KOLIBRI_USERS)
             print('Current user: {}'.format(self.current_user['username']))
             self.log_in(self.current_user['username'], facility=self.current_user['facility'])
         else:
@@ -39,7 +68,7 @@ class KolibriUserBehavior(TaskSet):
             print('No learners to run the tests. At least 1 admin + 1 coach + 1 learner are needed')
             sys.exit(1)
 
-    def log_in(self, username, password=None, facility=None):
+    def log_in(self, username, password=None, headers=None, facility=None):
         data = {'username': username}
 
         if password:
@@ -47,25 +76,27 @@ class KolibriUserBehavior(TaskSet):
         if facility:
             data['facility'] = facility
 
-        r = self.client.post('/api/session/', data=data, headers=self.headers)
+        if not headers:
+            headers = self.headers
 
+        r = self.client.post('/api/session/', data=data, headers=headers)
         # update headers with the new set of entries
         self.set_headers({'X-CSRFToken': r.cookies['csrftoken'],
                           'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
                               session_id=r.cookies['sessionid'],
                               csrf_token=r.cookies['csrftoken'])})
-
         return r.status_code == 200
 
-    def log_out(self):
-        r = self.client.delete('/api/session/current/', headers=self.headers)
+    def log_out(self, headers=None):
+        if not headers:
+            headers = self.headers
+        r = self.client.delete('/api/session/current/', headers=headers)
         return r.status_code == 200
 
     def get_headers(self):
         r = self.client.get('/user/')
         self.csrf_token = r.cookies['csrftoken']
         self.session_id = r.cookies['sessionid']
-
         cookie_header = 'sessionid={session_id}; csrftoken={csrf_token}'.format(
             session_id=self.session_id, csrf_token=self.csrf_token)
         return {'X-CSRFToken': self.csrf_token, 'Cookie': cookie_header}
@@ -120,7 +151,6 @@ class KolibriUserBehavior(TaskSet):
         self.do_userprogress()
 
         # log masterylog only if it hasn't been logged yet
-
         if not self.logs_ids.get('masterylog_id'):
             self.do_masterylog(content_id, channel_id, kind)
 
