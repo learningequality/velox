@@ -149,6 +149,7 @@ class KolibriUserBehavior(TaskSet):
         self.do_contentsessionlog(content_id, channel_id, kind)
         self.do_contentsummarylog(content_id, channel_id, kind)
         self.do_userprogress()
+        self.do_usersessionlog()
 
         # log masterylog only if it hasn't been logged yet
         if not self.logs_ids.get('masterylog_id'):
@@ -364,8 +365,16 @@ class KolibriUserBehavior(TaskSet):
 
     def do_userprogress(self):
         log_url = '/api/userprogress/{user_id}/'.format(user_id=self.current_user['id'])
-
         r = self.client.get(self.add_timestamp(log_url, first=True), headers=self.headers)
+        return r.status_code == 200
+
+    def do_usersessionlog(self):
+        """
+        Initiate a GET request on the session API endpoint with a `active=true` param, which in turns
+        triggers the update of the usersessionlog entry via Kolibri Django signals
+        """
+        log_url = '/api/session/current/?active=true'
+        r = self.client.get(log_url, headers=self.headers)
         return r.status_code == 200
 
     def add_timestamp(self, url, first=False):
