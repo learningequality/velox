@@ -7,6 +7,7 @@ from __future__ import print_function, unicode_literals
 import gevent
 import json
 import random
+import requests
 import sys
 import time
 
@@ -14,45 +15,45 @@ from datetime import datetime as dt
 from locust import TaskSet
 
 
+class AdminUser(object):
+    USERNAME = 'admin'
+    PASSWORD = 'admin'
+
+    def __init__(self, base_url):
+        self.base_url = base_url
+
+    def get_users(self):
+        data = {'username': AdminUser.USERNAME, 'password': AdminUser.PASSWORD}
+
+        r = requests.get('{base_url}/user/'.format(base_url=self.base_url))
+
+        csrf_token = r.cookies['csrftoken']
+        session_id = r.cookies['sessionid']
+
+        cookie_header = 'sessionid={session_id}; csrftoken={csrf_token}'.format(session_id=session_id,
+                                                                                csrf_token=csrf_token)
+        headers = {'X-CSRFToken': csrf_token, 'Cookie': cookie_header}
+
+        r = requests.post('{base_url}/api/session/'.format(base_url=self.base_url), data=data, headers=headers)
+
+        # update headers with the new set of entries
+        headers = {'X-CSRFToken': r.cookies['csrftoken'],
+                   'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
+                       session_id=r.cookies['sessionid'],
+                       csrf_token=r.cookies['csrftoken'])}
+
+        r = requests.get('{base_url}/api/facilityuser/'.format(base_url=self.base_url), headers=headers)
+
+        # users with coach or admin role need password to login:
+        return [{'username': u['username'], 'id':u['id'], 'facility':u['facility']}
+                for u in json.loads(r.content) if u['roles'] == []]
+
+
 class KolibriUserBehavior(TaskSet):
 
-    ADMIN_USERNAME = 'admin'
-    ADMIN_PASSWORD = 'admin'
     KOLIBRI_USERS = []
 
-    _setup_has_run = False  # internal state to see if we have already run
-    _lock = gevent.lock.Semaphore()  # lock to make sure setup is only run once
-
-    """
-    Helper method to wrap the locking code away from the `on_start` method
-    To add actual code which needs to be run before all tasks, use `setup`
-    """
-    def taskset_setup(self):
-        self._lock.acquire()
-        if self._setup_has_run is False:
-            KolibriUserBehavior._setup_has_run = True
-            self.setup()
-        self._lock.release()
-
-    """
-    Evalutes setup code once per runner session, hackish solution for the current
-    locust.io version - in the next stable version, this will be supported out of the box
-    """
-    def setup(self):
-        # retrieve admin-only headers to use with a single request to retrieve Kolibri users
-        admin_headers = self.get_headers()
-
-        # log in (and log out) with admin user to be able to get the list of all kolibri users
-        # and set the result to the static KOLIBRI_USERS to avoid repeating these requests
-        if self.log_in(KolibriUserBehavior.ADMIN_USERNAME, KolibriUserBehavior.ADMIN_PASSWORD,
-                       headers=admin_headers):
-            KolibriUserBehavior.KOLIBRI_USERS = self.get_kolibri_users()
-            self.log_out(headers=admin_headers)
-
     def on_start(self):
-        # implicit call required to be able to run code before running the tasks
-        self.taskset_setup()
-
         # retrieve headers for the current user
         self.headers = self.get_headers()
         self.current_user = None

@@ -29,7 +29,7 @@ from locust import HttpLocust, task
 
 
 try:
-    from locust_user import KolibriUserBehavior
+    from locust_user import KolibriUserBehavior, AdminUser
     from locust_wrapper import launch
 except ImportError:
     # the test is being run out of velox environment
@@ -37,7 +37,7 @@ except ImportError:
     import os
     import sys
     sys.path.append(os.path.join(os.getcwd(), 'src'))
-    from locust_user import KolibriUserBehavior
+    from locust_user import KolibriUserBehavior, AdminUser
     from locust_wrapper import launch
 
 
@@ -70,7 +70,11 @@ class WebsiteUser(HttpLocust):
 def run(base_url='http://127.0.0.1:8000', learners=1):
     rate = 5
     n_requests = 100
-    launch(WebsiteUser, base_url, learners, rate, n_requests, timeout=30)
+
+    admin = AdminUser(base_url=base_url)
+    KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
+
+    launch(WebsiteUser, base_url, learners, rate, n_requests, timeout=300)
 
 
 if __name__ == '__main__':
