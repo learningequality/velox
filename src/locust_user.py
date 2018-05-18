@@ -4,15 +4,14 @@ User class for the locust scenario runner
 """
 from __future__ import print_function, unicode_literals
 
-import gevent
 import json
 import random
 import requests
 import sys
-import time
 
 from datetime import datetime as dt
 from locust import TaskSet
+from utils import add_timestamp
 
 
 class AdminUser(object):
@@ -21,12 +20,13 @@ class AdminUser(object):
 
     def __init__(self, base_url):
         self.base_url = base_url
+        self.headers = None
 
-    def get_users(self):
+    def login_admin(self):
         data = {'username': AdminUser.USERNAME, 'password': AdminUser.PASSWORD}
 
+        # users with coach or admin role need password to login:
         r = requests.get('{base_url}/user/'.format(base_url=self.base_url))
-
         csrf_token = r.cookies['csrftoken']
         session_id = r.cookies['sessionid']
 
@@ -37,28 +37,59 @@ class AdminUser(object):
         r = requests.post('{base_url}/api/session/'.format(base_url=self.base_url), data=data, headers=headers)
 
         # update headers with the new set of entries
-        headers = {'X-CSRFToken': r.cookies['csrftoken'],
-                   'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
-                       session_id=r.cookies['sessionid'],
-                       csrf_token=r.cookies['csrftoken'])}
+        self.headers = {'X-CSRFToken': r.cookies['csrftoken'],
+                        'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
+            session_id=r.cookies['sessionid'], csrf_token=r.cookies['csrftoken'])}
 
-        r = requests.get('{base_url}/api/facilityuser/'.format(base_url=self.base_url), headers=headers)
+    def get_users(self):
+        if not self.headers:
+            self.login_admin()
+        r = requests.get('{base_url}/api/facilityuser/'.format(base_url=self.base_url), headers=self.headers)
+        if r.status_code != 200:
+            return []
 
-        # users with coach or admin role need password to login:
         return [{'username': u['username'], 'id':u['id'], 'facility':u['facility']}
                 for u in json.loads(r.content) if u['roles'] == []]
+
+    def get_content_resources(self, contents, kind):
+        resources = [{'content_id': content['id'],
+                      'channel_id': content['channel_id'],
+                      'assessment_item_ids': None if kind != 'exercise' else
+                      [content['assessment_item_ids'] for content in content['assessmentmetadata']],
+                      'files':[file['download_url']
+                               for file in content['files']]} for content in contents if content['kind'] == kind]
+
+        return resources
+
+    def get_resources(self):
+        resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
+        if not self.headers:
+            self.login_admin()
+        r = requests.get(add_timestamp('{base_url}/api/contentnode/?popular=true'.format(base_url=self.base_url)),
+                         headers=self.headers)
+        if r.status_code != 200:
+            return resources
+        try:
+            contents = json.loads(r.content)
+            for kind in resources.keys():
+                resources[kind] = self.get_content_resources(contents, kind)
+        except ValueError:
+            #  bad response from the server
+            pass
+        finally:
+            return resources
 
 
 class KolibriUserBehavior(TaskSet):
 
     KOLIBRI_USERS = []
+    RESOURCES = {'video': [], 'html5': [], 'document': [], 'exercise': []}
 
     def on_start(self):
         # retrieve headers for the current user
         self.headers = self.get_headers()
         self.current_user = None
         self.logs_ids = self.get_logs_ids_dict()
-        self.resources = self.get_resources()
 
         if KolibriUserBehavior.KOLIBRI_USERS:
             self.current_user = random.choice(KolibriUserBehavior.KOLIBRI_USERS)
@@ -111,27 +142,13 @@ class KolibriUserBehavior(TaskSet):
         return [{'username': u['username'], 'id':u['id'], 'facility':u['facility']}
                 for u in json.loads(r.content) if u['roles'] == []]
 
-    def get_resources(self):
-        resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
-        r = self.client.get(self.add_timestamp('/api/contentnode/?popular=true'), headers=self.headers)
-
-        try:
-            contents = json.loads(r.content)
-            for kind in resources.keys():
-                resources[kind] = self.get_content_resources(contents, kind)
-        except ValueError:
-            #  bad response from the server
-            pass
-        finally:
-            return resources
-
     def load_resource(self, kind, with_timestamp=False):
-        if self.resources[kind]:
-            resource = random.choice(self.resources[kind])
+        if KolibriUserBehavior.KOLIBRI_RESOURCES[kind]:
+            resource = random.choice(KolibriUserBehavior.KOLIBRI_RESOURCES[kind])
             # less fetch all the resources:
             for file_url in resource['files']:
                 if with_timestamp:
-                    file_url = self.add_timestamp(file_url)
+                    file_url = add_timestamp(file_url)
                 self.client.get(file_url)
             self.do_logging(resource, kind)
 
@@ -176,7 +193,7 @@ class KolibriUserBehavior(TaskSet):
             'time_spent': 0,
             'user': self.current_user['id']
         }
-        r = self.client.post(self.add_timestamp(log_url, first=True), data=data, headers=self.headers)
+        r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
         if not r.status_code == 201:
             return False
 
@@ -212,7 +229,7 @@ class KolibriUserBehavior(TaskSet):
         # create a GET request to check if the log already exists
         log_url_get = '{log_url}?content_id={content_id}&user_id={user_id}'.format(
             log_url=log_url, content_id=content_id, user_id=self.current_user['id'])
-        r = self.client.get(self.add_timestamp(log_url_get))
+        r = self.client.get(add_timestamp(log_url_get))
         if not r.status_code == 200:
             return False
 
@@ -222,7 +239,7 @@ class KolibriUserBehavior(TaskSet):
             log_id = contents[0]['pk']
         else:
             # create summarylog if it doesn't exists yet
-            r = self.client.post(self.add_timestamp(log_url, first=True), data=data, headers=self.headers)
+            r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
             if not r.status_code == 201:
                 return False
             log_id = json.loads(r.content)['pk']
@@ -254,7 +271,7 @@ class KolibriUserBehavior(TaskSet):
             'totalattempts': 0,
             'mastery_criterion': '{}'
         }
-        r = self.client.post(self.add_timestamp(log_url, first=True), data=data, headers=self.headers)
+        r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
 
         if not r.status_code == 201:
             return False
@@ -281,13 +298,13 @@ class KolibriUserBehavior(TaskSet):
         assessment_id = random.choice(resource['assessment_item_ids'][0])
         assessment_link = '/zipcontent/{perseus}/{assessment_id}.json'.format(perseus=perseus,
                                                                               assessment_id=assessment_id)
-        r = self.client.get(self.add_timestamp(assessment_link, first=True), headers=self.headers)
+        r = self.client.get(add_timestamp(assessment_link, first=True), headers=self.headers)
         if not r.status_code == 200:
             return False
         exercise_contents = json.loads(r.content)
         exercise_attempts = self.build_attempts(exercise_contents, resource, previous_attempt=None)
         # First attemptlog to receive id information
-        attempt_url = self.add_timestamp('/api/attemptlog/', first=True)
+        attempt_url = add_timestamp('/api/attemptlog/', first=True)
         r = self.client.post(attempt_url, data=exercise_attempts, headers=self.headers)
         if not r.status_code == 201:
             return False
@@ -366,7 +383,7 @@ class KolibriUserBehavior(TaskSet):
 
     def do_userprogress(self):
         log_url = '/api/userprogress/{user_id}/'.format(user_id=self.current_user['id'])
-        r = self.client.get(self.add_timestamp(log_url, first=True), headers=self.headers)
+        r = self.client.get(add_timestamp(log_url, first=True), headers=self.headers)
         return r.status_code == 200
 
     def do_usersessionlog(self):
@@ -377,20 +394,3 @@ class KolibriUserBehavior(TaskSet):
         log_url = '/api/session/current/?active=true'
         r = self.client.get(log_url, headers=self.headers)
         return r.status_code == 200
-
-    def add_timestamp(self, url, first=False):
-        time_token = str(time.time()).replace('.', '')[:13]
-        separator = '?' if first else '&'
-        new_url = '{url}{separator}{timestamp}={timestamp}'.format(
-            url=url, separator=separator, timestamp=time_token)
-        return new_url
-
-    def get_content_resources(self, contents, kind):
-        resources = [{'content_id': content['id'],
-                      'channel_id': content['channel_id'],
-                      'assessment_item_ids': None if kind != 'exercise' else
-                      [content['assessment_item_ids'] for content in content['assessmentmetadata']],
-                      'files':[file['download_url']
-                               for file in content['files']]} for content in contents if content['kind'] == kind]
-
-        return resources
