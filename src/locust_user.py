@@ -169,8 +169,8 @@ class KolibriUserBehavior(TaskSet):
         self.do_userprogress()
         self.do_usersessionlog()
 
-        # log masterylog only if it hasn't been logged yet
-        if not self.logs_ids.get('masterylog_id'):
+        # log masterylog only if contentsummarylog has been logged and masterylog hasn't been yet
+        if self.logs_ids.get('summarylog_id') and not self.logs_ids.get('masterylog_id'):
             self.do_masterylog(content_id, channel_id, kind)
 
         # log attemptlog only if content type is exercise
