@@ -39,7 +39,7 @@ It should be possible to run `velox` script simply by:
 
 ```python src/velox.py```
 
-as there are certain internal defaults defined.
+as there are certain internal defaults defined. Check them in the *Using the `settings` module* section.
 
 ### Testing scenarios
 To specify which testing scenario to run, `-t` or `--test` command line option can be used, e.g.:
