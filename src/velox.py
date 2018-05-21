@@ -116,7 +116,8 @@ class EnvironmentSetup(object):
         """ Finishes Kolibri server and deletes all the temp files used
         to create the running environment
         """
-        self._instance.kill()
+        if self._instance:
+            self._instance.kill()
         self.logger.info('Kolibri server has been stopped')
         try:
             shutil.rmtree(os.path.split(self.working_dir)[0])
