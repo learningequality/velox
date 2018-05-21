@@ -11,7 +11,6 @@ import sys
 
 from datetime import datetime as dt
 from locust import TaskSet
-from utils import add_timestamp
 
 
 class AdminUser(object):
@@ -65,7 +64,7 @@ class AdminUser(object):
         resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
         if not self.headers:
             self.login_admin()
-        r = requests.get(add_timestamp('{base_url}/api/contentnode/?popular=true'.format(base_url=self.base_url)),
+        r = requests.get('{base_url}/api/contentnode/?popular=true'.format(base_url=self.base_url),
                          headers=self.headers)
         if r.status_code != 200:
             return resources
@@ -148,7 +147,7 @@ class KolibriUserBehavior(TaskSet):
             # less fetch all the resources:
             for file_url in resource['files']:
                 if with_timestamp:
-                    file_url = add_timestamp(file_url)
+                    file_url = file_url
                 self.client.get(file_url)
             self.do_logging(resource, kind)
 
@@ -193,7 +192,7 @@ class KolibriUserBehavior(TaskSet):
             'time_spent': 0,
             'user': self.current_user['id']
         }
-        r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
+        r = self.client.post(log_url, data=data, headers=self.headers)
         if not r.status_code == 201:
             return False
 
@@ -229,7 +228,7 @@ class KolibriUserBehavior(TaskSet):
         # create a GET request to check if the log already exists
         log_url_get = '{log_url}?content_id={content_id}&user_id={user_id}'.format(
             log_url=log_url, content_id=content_id, user_id=self.current_user['id'])
-        r = self.client.get(add_timestamp(log_url_get))
+        r = self.client.get(log_url_get)
         if not r.status_code == 200:
             return False
 
@@ -239,7 +238,7 @@ class KolibriUserBehavior(TaskSet):
             log_id = contents[0]['pk']
         else:
             # create summarylog if it doesn't exists yet
-            r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
+            r = self.client.post(log_url, data=data, headers=self.headers)
             if not r.status_code == 201:
                 return False
             log_id = json.loads(r.content)['pk']
@@ -271,7 +270,7 @@ class KolibriUserBehavior(TaskSet):
             'totalattempts': 0,
             'mastery_criterion': '{}'
         }
-        r = self.client.post(add_timestamp(log_url, first=True), data=data, headers=self.headers)
+        r = self.client.post(log_url, data=data, headers=self.headers)
 
         if not r.status_code == 201:
             return False
@@ -298,13 +297,13 @@ class KolibriUserBehavior(TaskSet):
         assessment_id = random.choice(resource['assessment_item_ids'][0])
         assessment_link = '/zipcontent/{perseus}/{assessment_id}.json'.format(perseus=perseus,
                                                                               assessment_id=assessment_id)
-        r = self.client.get(add_timestamp(assessment_link, first=True), headers=self.headers)
+        r = self.client.get(assessment_link, headers=self.headers)
         if not r.status_code == 200:
             return False
         exercise_contents = json.loads(r.content)
         exercise_attempts = self.build_attempts(exercise_contents, resource, previous_attempt=None)
         # First attemptlog to receive id information
-        attempt_url = add_timestamp('/api/attemptlog/', first=True)
+        attempt_url = '/api/attemptlog/'
         r = self.client.post(attempt_url, data=exercise_attempts, headers=self.headers)
         if not r.status_code == 201:
             return False
@@ -383,7 +382,7 @@ class KolibriUserBehavior(TaskSet):
 
     def do_userprogress(self):
         log_url = '/api/userprogress/{user_id}/'.format(user_id=self.current_user['id'])
-        r = self.client.get(add_timestamp(log_url, first=True), headers=self.headers)
+        r = self.client.get(log_url, headers=self.headers)
         return r.status_code == 200
 
     def do_usersessionlog(self):

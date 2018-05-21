@@ -53,8 +53,8 @@ class UserBehavior(KolibriUserBehavior):
 
 class WebsiteUser(HttpLocust):
     task_set = UserBehavior
-    min_wait = 5000
-    max_wait = 9000
+    min_wait = 0
+    max_wait = 0
 
 
 def run(base_url='http://127.0.0.1:8000', learners=1):
@@ -67,7 +67,7 @@ def run(base_url='http://127.0.0.1:8000', learners=1):
     document = [] if not resources['document'] else [random.choice(resources['document'])]
     exercise = [] if not resources['exercise'] else [random.choice(resources['exercise'])]
     KolibriUserBehavior.KOLIBRI_RESOURCES = {'video': video, 'html5': html5, 'document': document, 'exercise': exercise}
-    launch(WebsiteUser, base_url, learners, rate, run_time=300)
+    launch(WebsiteUser, base_url, learners, rate, run_time=600)
 
 
 if __name__ == '__main__':
