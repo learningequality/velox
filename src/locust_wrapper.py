@@ -76,22 +76,21 @@ def get_or_create_output_dir():
     return output_dir
 
 
-def launch(classname, base_url, n_clients, rate, n_requests=None, timeout=600):
+def launch(classname, base_url, n_clients, rate, run_time=600):
     """
     Launches the tests
     :param: classname: class inherited from HttpLocust defining the test
     :param: base_url: server and port of the url to request
     :param: n_clients: Number of concurrent users
     :param: rate: The rate per second in which clients are spawned
-    :param: n_requests: Total number of requests to be done
-    :param: timeout: Stop testing after the specified amount of seconds
+    :param: run_time: Stop testing after the specified amount of seconds
     """
     options = Namespace(**{
         'host': base_url,
         'num_clients': n_clients,
         'hatch_rate': rate,
-        'num_requests': n_requests if n_requests else n_clients * 10,
-        'run_time': timeout,
+        'num_requests': n_clients * 10,  # obsolete, discontinued in new locust versions
+        'run_time': run_time,
         'no_web': True,
         'no_reset_stats': True,
         'csvfilebase': os.path.join(get_or_create_output_dir(), get_csv_filename())

@@ -68,13 +68,11 @@ class WebsiteUser(HttpLocust):
 
 
 def run(base_url='http://127.0.0.1:8000', learners=1):
-    rate = 5
-    n_requests = 100
-
+    rate = 10
     admin = AdminUser(base_url=base_url)
     KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
     KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
-    launch(WebsiteUser, base_url, learners, rate, n_requests, timeout=300)
+    launch(WebsiteUser, base_url, learners, rate, run_time=300)
 
 
 if __name__ == '__main__':

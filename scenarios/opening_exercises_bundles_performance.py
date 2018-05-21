@@ -20,10 +20,10 @@ Exercise       25               2              20        sqlite
 Video          25               2             100        sqlite
 """
 from __future__ import print_function, unicode_literals
-
-from locust import HttpLocust, TaskSet, task
+from locust import HttpLocust, task
 
 try:
+    from locust_user import KolibriUserBehavior, AdminUser
     from locust_wrapper import launch
 except ImportError:
     # the test is being run out of velox environment
@@ -31,14 +31,19 @@ except ImportError:
     import os
     import sys
     sys.path.append(os.path.join(os.getcwd(), 'src'))
+    from locust_user import KolibriUserBehavior, AdminUser
     from locust_wrapper import launch
 
 
-class UserBehavior(TaskSet):
+class UserBehavior(KolibriUserBehavior):
 
-    @task(1)
-    def get_something_else(self):
-        self.client.get('/')
+    @task
+    def load_html5_resources(self):
+        self.load_resource('html5')
+
+    @task
+    def load_exercise_resources(self):
+        self.load_resource('exercise')
 
 
 class WebsiteUser(HttpLocust):
@@ -47,8 +52,15 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run(base_url='http://kolibridemo.learningequality.org', users=3):
-    launch(WebsiteUser, base_url, users, 3)
+def run(base_url='http://kolibridemo.learningequality.org', learners=3):
+    rate = 10
+    admin = AdminUser(base_url=base_url)
+    KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
+    resources = admin.get_resources()
+    exercise = [] if not resources['exercise'] else resources['exercise']
+    html5 = [] if not resources['html5'] else resources['html5']
+    KolibriUserBehavior.KOLIBRI_RESOURCES = {'video': [], 'html5': html5, 'document': [], 'exercise': exercise}
+    launch(WebsiteUser, base_url, learners, rate, run_time=30)
 
 
 if __name__ == '__main__':
