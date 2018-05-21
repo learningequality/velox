@@ -1,6 +1,3 @@
-
-
-
 # Velox
 
 ## What is Velox?
@@ -11,12 +8,15 @@ The project is being actively developed, which means that you may run into poten
 
 ### Requirements
 #### Kolibri
-You can follow the [online developer documentation](http://kolibri-dev.readthedocs.io/en/develop/) to set up the development environment.
+You can follow the [online developer documentation](http://kolibri-dev.readthedocs.io/en/develop/) to set up Kolibri development environment.
 
-#### PostgreSQL
-To be able to run tests in the PostgreSQL context, you will have to install [PostgreSQL](https://www.postgresql.org/) and PostgresSQL related dependencies by running the following command (using the Kolibri virtualenv):
-
-`pip install -r requirements/postgres.txt`
+#### PostgreSQL (optional)
+To be able to run tests with the PostgreSQL database backend, there are additional couple of steps to take.
+##### Install PostgreSQL server
+Make sure that [PostgreSQL](https://www.postgresql.org/) server is installed on your system and listening on port `5432`.
+##### Install Kolibri PostgreSQL dependencies
+Install Kolibri PostgresSQL related package dependencies by running the following command within the Kolibri virtualenv:
+```pip install -r requirements/postgres.txt```
 
 ### Get Velox code
 - Clone the Velox repository
