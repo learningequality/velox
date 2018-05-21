@@ -51,7 +51,7 @@ def get_test_calling():
     Finds out the name of the test being run
     :returns: A string with the name of the module importing this module
     """
-    frame_records = inspect.stack()[2]
+    frame_records = inspect.stack()[3]
     return inspect.getmodulename(frame_records[1])
 
 
