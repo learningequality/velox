@@ -10,13 +10,14 @@ import os
 import socket
 import subprocess
 import sys
+import time
 
 from datetime import datetime
 from string import Template
 
 __all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts', 'get_free_tcp_port', 'manage_cli',
            'set_kolibri_home', 'select_cli', 'show_error', 'import_postgresql_dump', 'export_postgresql_dump',
-           'write_options_ini']
+           'write_options_ini', 'add_timestamp']
 
 if sys.version_info < (3,):
     FileNotFoundError = IOError
@@ -330,3 +331,10 @@ def get_parse_args_definitions(wanted=None):
         return dict((k, definitions[k]) for k in wanted if k in definitions)
 
     return definitions
+
+def add_timestamp(url, first=False):
+    time_token = str(time.time()).replace('.', '')[:13]
+    separator = '?' if first else '&'
+    new_url = '{url}{separator}{timestamp}={timestamp}'.format(
+        url=url, separator=separator, timestamp=time_token)
+    return new_url

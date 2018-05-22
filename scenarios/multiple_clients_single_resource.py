@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Experiment scenario 2
-Server unresponsive when multiple clients access different resource
+Experiment scenario 1
+Server unresponsive when multiple clients access the same resource
 
-Endpoints (shared between the requests):
+Endpoints:
 * /user/#/signin
 * /facility/#/classes
 * /learn/#/topics/{id} : video
@@ -25,41 +25,49 @@ Multiple        25              2           100         postgresql
 """
 from __future__ import print_function, unicode_literals
 
+import random
 from locust import HttpLocust, task
 
-
 try:
-    from test_scaffolding import launch, KolibriUserBehavior
+    from locust_user import KolibriUserBehavior, AdminUser
+    from locust_wrapper import launch
 except ImportError:
     # the test is being run out of velox environment
     # and velox package is not installed
     import os
     import sys
     sys.path.append(os.path.join(os.getcwd(), 'src'))
-    from test_scaffolding import launch, KolibriUserBehavior
+    from locust_user import KolibriUserBehavior, AdminUser
+    from locust_wrapper import launch
 
 
 class UserBehavior(KolibriUserBehavior):
 
     @task
     def load_exercise_resources(self):
-        self.load_resource(self.exercises)
-        self.load_resource(self.videos)
-        self.load_resource(self.documents)
-        self.load_resource(self.html5)
+        self.load_resource('exercise')
+        self.load_resource('document')
+        self.load_resource('video')
+        self.load_resource('html5')
 
 
 class WebsiteUser(HttpLocust):
     task_set = UserBehavior
-    # don't wait, hit the server as fast as you can:
-    min_wait = 5000
-    max_wait = 15000
+    min_wait = 0
+    max_wait = 0
 
 
-def run(base_url='http://kolibribeta.learningequality.org', learners=25):
-    # rate= 5
-    # total number of requests=100
-    launch(WebsiteUser, base_url, learners, 5, 100, timeout=30)
+def run(base_url='http://127.0.0.1:8000', learners=1):
+    rate = 10
+    admin = AdminUser(base_url=base_url)
+    KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
+    resources = admin.get_resources()
+    video = [] if not resources['video'] else [random.choice(resources['video'])]
+    html5 = [] if not resources['html5'] else [random.choice(resources['html5'])]
+    document = [] if not resources['document'] else [random.choice(resources['document'])]
+    exercise = [] if not resources['exercise'] else [random.choice(resources['exercise'])]
+    KolibriUserBehavior.KOLIBRI_RESOURCES = {'video': video, 'html5': html5, 'document': document, 'exercise': exercise}
+    launch(WebsiteUser, base_url, learners, rate, run_time=600)
 
 
 if __name__ == '__main__':

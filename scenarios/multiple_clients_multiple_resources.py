@@ -29,37 +29,35 @@ from locust import HttpLocust, task
 
 
 try:
-    from test_scaffolding import launch, KolibriUserBehavior
+    from locust_user import KolibriUserBehavior, AdminUser
+    from locust_wrapper import launch
 except ImportError:
     # the test is being run out of velox environment
     # and velox package is not installed
     import os
     import sys
     sys.path.append(os.path.join(os.getcwd(), 'src'))
-    from test_scaffolding import launch, KolibriUserBehavior
+    from locust_user import KolibriUserBehavior, AdminUser
+    from locust_wrapper import launch
 
 
 class UserBehavior(KolibriUserBehavior):
 
-    @task(30)
-    def load_learn_pages(self):
-        self.load_resource(self.urls, True)
-
     @task(40)
     def load_video_resources(self):
-        self.load_resource(self.videos)
+        self.load_resource('video')
 
     @task(50)
     def load_html5_resources(self):
-        self.load_resource(self.html5)
+        self.load_resource('html5')
 
     @task(20)
     def load_document_resources(self):
-        self.load_resource(self.documents)
+        self.load_resource('document')
 
     @task(30)
     def load_exercise_resources(self):
-        self.load_resource(self.exercises)
+        self.load_resource('exercise')
 
 
 class WebsiteUser(HttpLocust):
@@ -69,10 +67,12 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run(base_url='http://kolibribeta.learningequality.org', learners=25):
-    # rate= 5
-    # total number of requests=100
-    launch(WebsiteUser, base_url, learners, 5, 100, timeout=30)
+def run(base_url='http://127.0.0.1:8000', learners=30):
+    rate = 100
+    admin = AdminUser(base_url=base_url)
+    KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
+    KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
+    launch(WebsiteUser, base_url, learners, rate, run_time=180)
 
 
 if __name__ == '__main__':
