@@ -149,6 +149,7 @@ class EnvironmentSetup(object):
                 self.logger.warn('Running kolibri from dev environment. Ensure you have run `yarn build` before')
             self._instance = subprocess.Popen(kolibri_commands)
             self._wait_for_server_start()
+
             self.logger.info('Kolibri server started and running in port {}'.format(self.port))
             return True
         except OSError:
@@ -219,6 +220,7 @@ if __name__ == '__main__':
             es.do_setup()
             if not es.start():
                 es.do_clean(True)
+            os.environ['KOLIBRI_BASE_URL'] = es.base_url
             for test in es.load_tests():
                 # Each test is done three times
                 tests_durations[test.__name__] = []
@@ -228,7 +230,7 @@ if __name__ == '__main__':
 
                     # Actual test execution:
                     try:
-                        test.run(es.base_url, opts.learners)
+                        test.run(opts.learners)
                     except AttributeError:
                         logger.error('{} is not a correct module to run tests'.format(test.__name__))
                         # Clean temp files and quit velox:

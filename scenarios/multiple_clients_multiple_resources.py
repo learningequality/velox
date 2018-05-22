@@ -24,7 +24,7 @@ Multiple        25              2           100         sqlite
 Multiple        25              2           100         postgresql
 """
 from __future__ import print_function, unicode_literals
-
+import os
 from locust import HttpLocust, task
 
 
@@ -34,11 +34,14 @@ try:
 except ImportError:
     # the test is being run out of velox environment
     # and velox package is not installed
-    import os
     import sys
     sys.path.append(os.path.join(os.getcwd(), 'src'))
     from locust_user import KolibriUserBehavior, AdminUser
     from locust_wrapper import launch
+
+admin = AdminUser(base_url=os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000'))
+KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
+KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
 
 
 class UserBehavior(KolibriUserBehavior):
@@ -67,12 +70,9 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run(base_url='http://127.0.0.1:8000', learners=30):
-    rate = 100
-    admin = AdminUser(base_url=base_url)
-    KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
-    KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
-    launch(WebsiteUser, base_url, learners, rate, run_time=80)
+def run(learners=30):
+    rate = 30
+    launch(WebsiteUser, learners, rate, run_time=120)
 
 
 if __name__ == '__main__':
