@@ -90,13 +90,6 @@ class EnvironmentSetup(object):
         dump_path = os.path.join(self.working_dir, '{}.sql'.format(self.opts.channel))
         return import_postgresql_dump(dump_path, self.opts, self.logger)
 
-    def __generate_user_data(self):
-        """
-        Generate testing data in the database, according to the args
-        provided when executing velox from the command line
-        """
-        self.manage('generateuserdata', '--classes', str(self.opts.classrooms), '--users', str(self.opts.learners))
-
     def __inject_options_ini(self):
         """
         Renders and injects options.ini configuration file into the current working directory
@@ -110,7 +103,6 @@ class EnvironmentSetup(object):
         Prepare all the envirnoment to be able to run Kolibri and tests
         """
         self.__set_database()
-        self.__generate_user_data()
 
     def do_clean(self, error_exit=False):
         """ Finishes Kolibri server and deletes all the temp files used
