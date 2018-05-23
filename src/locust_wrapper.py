@@ -94,7 +94,7 @@ def launch(classname, n_clients, rate, run_time=600):
         'host': base_url,
         'num_clients': n_clients * 25,
         'hatch_rate': rate,
-        'num_requests':9999999,  # obsolete, discontinued in new locust versions
+        'num_requests': 9999999,  # obsolete, discontinued in new locust versions
         'run_time': run_time,
         'no_web': True,
         'no_reset_stats': True,

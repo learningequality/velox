@@ -11,6 +11,7 @@ import socket
 import subprocess
 import sys
 import time
+import traceback
 
 from datetime import datetime
 from string import Template
@@ -182,6 +183,7 @@ def show_error(logger, error, message=''):
     if message:
         error_text = '{} {}'.format(error_text, message)
     logger.error(error_text)
+    traceback.print_exc(file=sys.stdout)
 
 
 def get_config_opts(wanted, **kwargs):
