@@ -41,7 +41,7 @@ def shutdown(options, code=0):
     if runners.locust_runner is not None:
         runners.locust_runner.stop()
 
-    events.quitting.fire(reverse=True)
+    events.quitting.fire()
     print_stats(runners.locust_runner.request_stats)
     print_percentile_stats(runners.locust_runner.request_stats)
     if options.csvfilebase:
