@@ -164,7 +164,7 @@ Once ran, `velox` will try to load this module and execute its `run` function to
 * `cd vm_config`
 * `ansible-playbook -i inventory.ini main.yml -v` to provision the VM
 
-Note that `-v` argument in the last command isoptional and helps to debug potential issues.
+Note that `-v` argument in the last command is optional and helps to debug potential issues.
 Add `-vvvv` to enable to enable connection debugging.
 
 ### Running tests inside a virtual machine
@@ -173,7 +173,7 @@ If all went well with the installation, you should be able to `ssh` to the VM an
 
 Start by `ssh`-ing to the VM:
 
-``` vagrant ssh```
+```vagrant ssh```
 
 Your current working directory, where the Velox is installed, has been automatically mounted inside the VM, so all the changes you make on your host machine will be synced to the VM.
 
