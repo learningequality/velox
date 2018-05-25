@@ -151,7 +151,7 @@ Once ran, `velox` will try to load this module and execute its `run` function to
 
 ###  Install required Ansible packages
 
-* `ansible-galaxy install lborguetti.system-locale`
+* `sudo ansible-galaxy install lborguetti.system-locale`
 
 ### Start the virtual machine
 

@@ -6,8 +6,8 @@
   roles:
     - { role: lborguetti.system-locale, become: yes, become_user: root }
     - { role: common_deps, become: yes, become_user: root }
-    - environment_locale
-    - { role: virtualenv, become: yes, become_user: root }
+    - { role: environment_locale, become: yes, become_user: root}
+    - virtualenv
     - velox
     - kolibri
 
