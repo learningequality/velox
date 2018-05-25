@@ -1,0 +1,15 @@
+---
+- hosts:
+    - velox
+  user: vagrant
+
+  roles:
+    - { role: lborguetti.system-locale, become: yes, become_user: root }
+    - { role: common_deps, become: yes, become_user: root }
+    - environment_locale
+    - { role: virtualenv, become: yes, become_user: root }
+    - velox
+    - kolibri
+
+  vars_files:
+    - vars.yml

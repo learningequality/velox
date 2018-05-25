@@ -98,3 +98,6 @@ data/
 
 # variuos output data
 output/
+
+vm_config/main.retry
+.vagrant/
