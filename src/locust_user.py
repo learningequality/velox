@@ -83,6 +83,7 @@ class KolibriUserBehavior(TaskSet):
 
     KOLIBRI_USERS = []
     RESOURCES = {'video': [], 'html5': [], 'document': [], 'exercise': []}
+    TIMEOUT = (1, 1)
 
     def on_start(self):
         # retrieve headers for the current user
@@ -193,14 +194,14 @@ class KolibriUserBehavior(TaskSet):
             'user': self.current_user['id']
         }
         r = self.client.post(log_url, data=data, headers=self.headers,
-                             timeout=(1, 1), name='/api/contentsessionlog/')
+                             timeout=KolibriUserBehavior.TIMEOUT, name='/api/contentsessionlog/')
         if not r.status_code == 201:
             return False
 
         # create PATCH request to update the log
         data['pk'] = json.loads(r.content)['pk']
         log_url_patch = '{log_url}{log_id}/'.format(log_url=log_url, log_id=data['pk'])
-        r = self.client.patch(log_url_patch, data=data, headers=self.headers, timeout=(1, 1),
+        r = self.client.patch(log_url_patch, data=data, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
                               name='/api/contentsessionlog/{}'.format(self.current_user['username']))
 
         # set log id for other log methods to use if necessary
@@ -230,7 +231,7 @@ class KolibriUserBehavior(TaskSet):
         # create a GET request to check if the log already exists
         log_url_get = '{log_url}?content_id={content_id}&user_id={user_id}'.format(
             log_url=log_url, content_id=content_id, user_id=self.current_user['id'])
-        r = self.client.get(log_url_get, timeout=(1, 1),
+        r = self.client.get(log_url_get, timeout=KolibriUserBehavior.TIMEOUT,
                             name='/api/contentsummarylog/{}'.format(self.current_user['username']))
         if not r.status_code == 200:
             return False
@@ -241,7 +242,7 @@ class KolibriUserBehavior(TaskSet):
             log_id = contents[0]['pk']
         else:
             # create summarylog if it doesn't exists yet
-            r = self.client.post(log_url, data=data, headers=self.headers, timeout=(1, 1),
+            r = self.client.post(log_url, data=data, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
                                  name='/api/contentsummarylog/{}'.format(self.current_user['username']))
             if not r.status_code == 201:
                 return False
@@ -250,7 +251,7 @@ class KolibriUserBehavior(TaskSet):
         # create PATCH request to update the log
         data['pk'] = log_id
         log_url_patch = '{log_url}{log_id}/'.format(log_url=log_url, log_id=log_id)
-        r = self.client.patch(log_url_patch, data=data, headers=self.headers, timeout=(1, 1),
+        r = self.client.patch(log_url_patch, data=data, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
                               name='/api/contentsummarylog/{}'.format(self.current_user['username']))
 
         # set log id for other log methods to use if necessary
@@ -275,7 +276,7 @@ class KolibriUserBehavior(TaskSet):
             'totalattempts': 0,
             'mastery_criterion': '{}'
         }
-        r = self.client.post(log_url, data=data, headers=self.headers, timeout=(1, 1),
+        r = self.client.post(log_url, data=data, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
                              name='/api/masterylog/{}'.format(self.current_user['username']))
 
         if not r.status_code == 201:
@@ -318,7 +319,7 @@ class KolibriUserBehavior(TaskSet):
         attempt_id = exercise_attempts['id']
         attempt_url_patch = '/api/attemptlog/{}/'.format(attempt_id)
         # last attemptlog after the exercise is finished
-        r = self.client.patch(attempt_url_patch, data=exercise_attempts, headers=self.headers, timeout=(1, 1),
+        r = self.client.patch(attempt_url_patch, data=exercise_attempts, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
                               name='/api/attemptlog/{}'.format(self.current_user['username']))
         return r.status_code == 200
 
@@ -389,7 +390,7 @@ class KolibriUserBehavior(TaskSet):
 
     def do_userprogress(self):
         log_url = '/api/userprogress/{user_id}/'.format(user_id=self.current_user['id'])
-        r = self.client.get(log_url, headers=self.headers, timeout=(1, 1),
+        r = self.client.get(log_url, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
                             name='/api/userprogress/{}'.format(self.current_user['username']))
         return r.status_code == 200
 
