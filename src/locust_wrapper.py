@@ -92,7 +92,7 @@ def launch(classname, n_clients, rate, run_time=600):
     base_url = os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000')
     options = Namespace(**{
         'host': base_url,
-        'num_clients': n_clients * 25,
+        'num_clients': n_clients ,
         'hatch_rate': rate,
         'num_requests': 9999999,  # obsolete, discontinued in new locust versions
         'run_time': run_time,

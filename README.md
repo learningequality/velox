@@ -179,7 +179,7 @@ Your current working directory, where the Velox is installed, has been automatic
 
 Once successfully connected to the VM, you can run:
 
-* `. ~/.venvs/velox/bin/activate` to activate the Velox virtualenv
+* `source ~/.venvs/velox/bin/activate` to activate the Velox virtualenv
 * `cd /vagrant` to change working directory to the Velox mounted directory
 
 You're now ready to run Velox, but you will have to explicitly specify the `--kolibri_dev` / `-kd` and `--kolibri_venv` / `-kv` arguments to avoid changing the host `settings.py` file:
