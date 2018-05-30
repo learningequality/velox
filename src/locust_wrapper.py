@@ -14,9 +14,12 @@ import datetime
 import gevent
 import inspect
 import os
+import subprocess
+import time
 
 from argparse import Namespace
-from locust.runners import LocalLocustRunner
+from distutils import spawn
+from locust.runners import MasterLocustRunner
 from locust import events, runners
 from locust.stats import print_error_report, print_percentile_stats, print_stats, write_stat_csvs, stats_writer
 from locust.log import setup_logging
@@ -27,7 +30,7 @@ def spawn_run_time_limit_greenlet(options):
     To stop each test gevent greenlet after timeout passes
     """
     def timelimit_stop():
-        runners.locust_runner.stop()
+        runners.locust_runner.quit()
     gevent.spawn_later(options.run_time, timelimit_stop)
 
 
@@ -38,7 +41,7 @@ def shutdown(options, code=0):
     if runners.locust_runner is not None:
         runners.locust_runner.stop()
 
-    events.quitting.fire(reverse=True)
+    events.quitting.fire()
     print_stats(runners.locust_runner.request_stats)
     print_percentile_stats(runners.locust_runner.request_stats)
     if options.csvfilebase:
@@ -76,7 +79,7 @@ def get_or_create_output_dir():
     return output_dir
 
 
-def launch(classname, base_url, n_clients, rate, run_time=600):
+def launch(classname, n_clients, rate, run_time=600):
     """
     Launches the tests
     :param: classname: class inherited from HttpLocust defining the test
@@ -85,22 +88,37 @@ def launch(classname, base_url, n_clients, rate, run_time=600):
     :param: rate: The rate per second in which clients are spawned
     :param: run_time: Stop testing after the specified amount of seconds
     """
+
+    base_url = os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000')
     options = Namespace(**{
         'host': base_url,
         'num_clients': n_clients,
         'hatch_rate': rate,
-        'num_requests': n_clients * 10,  # obsolete, discontinued in new locust versions
+        'num_requests': 9999999,  # obsolete, discontinued in new locust versions
         'run_time': run_time,
         'no_web': True,
         'no_reset_stats': True,
-        'csvfilebase': os.path.join(get_or_create_output_dir(), get_csv_filename())
+        'csvfilebase': os.path.join(get_or_create_output_dir(), get_csv_filename()),
+        'expect_slaves': 1,
+        'master_host': '127.0.0.1',
+        'master_port': 5557,
+        'master_bind_host': '*',
+        'master_bind_port': 5557
+
     })
 
     setup_logging('INFO', None)
-    runners.locust_runner = LocalLocustRunner([classname], options)
-
+    test_path = 'scenarios/{}.py'.format(classname.__module__)
+    locust_executable = spawn.find_executable('locust')
+    slave_args = [locust_executable, '--slave', '-f', test_path]
+    for slave in range(5):
+        subprocess.Popen(slave_args, env={'KOLIBRI_BASE_URL': base_url})
+    time.sleep(1)
+    runners.locust_runner = MasterLocustRunner([classname], options)
+    while len(runners.locust_runner.clients.ready) < options.expect_slaves:
+        time.sleep(1)
     # spawn client spawning/hatching greenlets:
-    runners.locust_runner.start_hatching(wait=True)
+    runners.locust_runner.start_hatching(options.num_clients, options.hatch_rate)
     main_greenlet = runners.locust_runner.greenlet
     spawn_run_time_limit_greenlet(options)
 

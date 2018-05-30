@@ -11,6 +11,7 @@ import socket
 import subprocess
 import sys
 import time
+import traceback
 
 from datetime import datetime
 from string import Template
@@ -182,6 +183,7 @@ def show_error(logger, error, message=''):
     if message:
         error_text = '{} {}'.format(error_text, message)
     logger.error(error_text)
+    traceback.print_exc(file=sys.stdout)
 
 
 def get_config_opts(wanted, **kwargs):
@@ -220,9 +222,11 @@ def get_config_opts(wanted, **kwargs):
         if opt_key in args_definitions:
             try:
                 # Here we're assuming the position of the args configuration dict
-                # which might be pushing it a bit - fill_parse_args assumes the same
                 args_conf = args_definitions[opt_key][2]
             except KeyError:
+                # And try one more time if the short arg format was not used
+                args_conf = args_definitions[opt_key][1]
+            except Exception:
                 args_conf = None
 
             if args_conf and 'choices' in args_conf and getattr(opts, opt_key) not in args_conf['choices']:
@@ -264,8 +268,12 @@ def fill_parse_args(wanted, **kwargs):
     args_definitions = get_parse_args_definitions(wanted)
 
     for _, arg_definition in args_definitions.items():
-        arg_short, arg_long, arg_opts = arg_definition
-        parser.add_argument(arg_short, arg_long, **arg_opts)
+        try:
+            arg_short, arg_long, arg_opts = arg_definition
+            parser.add_argument(arg_short, arg_long, **arg_opts)
+        except ValueError:
+            arg_long, arg_opts = arg_definition
+            parser.add_argument(arg_long, **arg_opts)
     return parser.parse_args()
 
 

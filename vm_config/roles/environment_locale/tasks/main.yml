@@ -1,0 +1,6 @@
+---
+- name: Ensure locale is set in /etc/environment
+  lineinfile: dest=/etc/environment regexp='^LC_ALL="en_US.UTF-8"' line='LC_ALL="en_US.UTF-8"'
+
+- name: Export locale env variable
+  shell: export LC_ALL="en_US.UTF-8"

@@ -1,0 +1,6 @@
+---
+- name: Initialize virtualenv
+  shell: virtualenv --python=python3.6 {{ velox_venv_dir }}
+
+- name: Install pip Requirements
+  pip: requirements={{ velox_dev_dir }}/requirements.txt virtualenv={{ velox_venv_dir }}
