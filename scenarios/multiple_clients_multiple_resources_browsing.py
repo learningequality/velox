@@ -27,6 +27,7 @@ class UserBehavior(KolibriUserBehavior):
     def browse_resources(self):
         self.browse_resource()
 
+
 class WebsiteUser(HttpLocust):
     task_set = UserBehavior
     min_wait = 0
