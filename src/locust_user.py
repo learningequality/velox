@@ -154,6 +154,8 @@ class KolibriUserBehavior(TaskSet):
 
             # get the channel data
             parent_node = self.get_content_node(channel['id'])
+            if not parent_node:
+                return
 
         # "click" on the node
         self.get_content_node_ancestors(parent_node['id'])
