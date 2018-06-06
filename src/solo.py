@@ -20,9 +20,12 @@ class SoloTester(object):
 
     def __init__(self, opts):
         self.opts = opts
-        self.headers = self.login_and_get_headers()
 
-    def login_and_get_headers(self):
+        self.user_id = None
+        self.headers = None
+        self._login()
+
+    def _login(self):
         data = {'username': SoloTester.USERNAME, 'password': SoloTester.PASSWORD}
 
         r = requests.get('{base_url}/user/'.format(base_url=self.opts.base_url))
@@ -37,19 +40,35 @@ class SoloTester(object):
         r = requests.post('{base_url}/api/session/'.format(base_url=self.opts.base_url),
                           data=data, headers=headers)
 
-        return {'X-CSRFToken': r.cookies['csrftoken'],
-                'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
-                    session_id=r.cookies['sessionid'],
-                    csrf_token=r.cookies['csrftoken'])}
+        self.user_id = r.json()['user_id']
+        self.headers =  {'X-CSRFToken': r.cookies['csrftoken'],
+                         'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
+                             session_id=r.cookies['sessionid'],
+                             csrf_token=r.cookies['csrftoken'])}
 
     def measure(self):
-        url = self.opts.base_url + self.opts.endpoint
+        if self.opts.target:
+            try:
+                target_fn = getattr(self, '_{target}'.format(target=self.opts.target))
+                method, endpoint, data = target_fn()
+            except AttributeError:
+                print('ERROR: `_{}` target function has to be implemented'.format(self.opts.target))
+                return
+        else:
+            method = self.opts.method
+            endpoint = self.opts.endpoint
+            data = None
+
+        url = self.opts.base_url + endpoint
 
         run_times = []
         print('')
 
         for i in range(self.opts.series):
-            r = requests.request(self.opts.method, url)
+            if data:
+                r = requests.request(method, url, data=data, headers=self.headers)
+            else:
+                r = requests.request(method, url, headers=self.headers)
 
             run_time = r.elapsed.total_seconds()
             run_times.append(run_time)
@@ -65,18 +84,36 @@ class SoloTester(object):
 
         print('')
         print('-' * 80)
-        print('Endpoint: {url}'.format(url=url))
-        print('Runs: {series}'.format(series=self.opts.series))
-        print('Average:  {time}s'.format(time=sum(run_times) / self.opts.series))
+        print('Method:    {method}'.format(method=method))
+        print('Endpoint:  {url}'.format(url=url))
+        print('Runs:      {series}'.format(series=self.opts.series))
+        print('Average:   {time}s'.format(time=sum(run_times) / self.opts.series))
         print('')
+
+    def _post_contentsessionlog(self):
+        method = 'POST'
+        endpoint = '/api/contentsessionlog/'
+        data = {
+            'channel_id': '1a9158aa082a460b9ea693ba329e0770',
+            'content_id': '0d62c6ce0b1949f8b5d27e377983227a',
+            'end_timestamp': '2018-06-06T19:01:19.764926Z',
+            'extra_fields': '{}',
+            'kind': 'exercise',
+            'progress': 0,
+            'start_timestamp': '2018-06-06T19:01:19.764926Z',
+            'time_spent': 0,
+            'user': self.user_id
+        }
+        return method, endpoint, data
 
 
 def get_parse_args():
     parser = argparse.ArgumentParser(description='SoloTester utility')
     parser.add_argument('-b', '--base-url', default='http://127.0.0.1:8080', help='API endpoint')
-    parser.add_argument('-e', '--endpoint', required=True, help='API endpoint')
+    parser.add_argument('-e', '--endpoint', help='API endpoint')
     parser.add_argument('-m', '--method', default='GET', help='HTTP method (default = GET)')
     parser.add_argument('-s', '--series', type=int, default=100, help='Number of run series')
+    parser.add_argument('-t', '--target', required=False, help='Custom function target')
 
     return parser.parse_args()
 
