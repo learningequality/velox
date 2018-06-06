@@ -76,7 +76,7 @@ def get_parse_args():
     parser.add_argument('-b', '--base-url', default='http://127.0.0.1:8080', help='API endpoint')
     parser.add_argument('-e', '--endpoint', required=True, help='API endpoint')
     parser.add_argument('-m', '--method', default='GET', help='HTTP method (default = GET)')
-    parser.add_argument('-s', '--series', default=100, help='Number of run series')
+    parser.add_argument('-s', '--series', type=int, default=100, help='Number of run series')
 
     return parser.parse_args()
 
