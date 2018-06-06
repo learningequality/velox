@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Script to measure individual API requests
+Script to measure individual Kolibri API requests
 
-ATM requires Kolibri server running on http://127.0.0.1:8080
+At the moment requires Kolibri server running independently of this utility:
+    - by default: http://127.0.0.1:8080
+    - can be overriden by passing `-b` or `--base-url` CLI argument
 
-TODO: make options configurable via the CLI arguments
+Additionally, Kolibri instance should have user with 'admin:admin' credentials
+
 """
 
+import argparse
 import requests
 
 
@@ -14,14 +18,14 @@ class SoloTester(object):
     USERNAME = 'admin'
     PASSWORD = 'admin'
 
-    def __init__(self, base_url):
-        self.base_url = base_url
+    def __init__(self, opts):
+        self.opts = opts
         self.headers = self.login_and_get_headers()
 
     def login_and_get_headers(self):
         data = {'username': SoloTester.USERNAME, 'password': SoloTester.PASSWORD}
 
-        r = requests.get('{base_url}/user/'.format(base_url=self.base_url))
+        r = requests.get('{base_url}/user/'.format(base_url=self.opts.base_url))
         csrf_token = r.cookies['csrftoken']
         session_id = r.cookies['sessionid']
 
@@ -30,7 +34,7 @@ class SoloTester(object):
 
         headers = {'X-CSRFToken': csrf_token, 'Cookie': cookie_header}
 
-        r = requests.post('{base_url}/api/session/'.format(base_url=self.base_url),
+        r = requests.post('{base_url}/api/session/'.format(base_url=self.opts.base_url),
                           data=data, headers=headers)
 
         return {'X-CSRFToken': r.cookies['csrftoken'],
@@ -38,38 +42,47 @@ class SoloTester(object):
                     session_id=r.cookies['sessionid'],
                     csrf_token=r.cookies['csrftoken'])}
 
-    def measure(self, endpoint=None, verb='GET', series=1, verbose=False):
-        url = self.base_url + endpoint
+    def measure(self):
+        url = self.opts.base_url + self.opts.endpoint
 
         run_times = []
         print('')
 
-        for i in range(series):
-            r = requests.request(verb, url)
+        for i in range(self.opts.series):
+            r = requests.request(self.opts.method, url)
+
             run_time = r.elapsed.total_seconds()
-            run_time_padded = str(run_time).ljust(8, '0')
             run_times.append(run_time)
 
-            if verbose:
-                print('Run {run: <5} time={time: <8}s  status={status_code}  size={content_size}B'.format(
-                    run=i + 1, time=run_time_padded, status_code=r.status_code,
-                    content_size=r.headers['Content-Length']))
-            else:
-                print('Run {run: <5} {time}s'.format(run=i + 1, time=run_time_padded))
+            run_time_display = str(run_time).ljust(8, '0')
+            status_code_display = '{status} {status_description}'.format(
+                status=r.status_code,
+                status_description=requests.status_codes._codes[r.status_code][0].replace('_', ' ').upper())
+
+            print('Run {run: <5} time={time: <8}s   status={status_code}   size={content_size}B'.format(
+                run=i + 1, time=run_time_display, status_code=status_code_display,
+                content_size=r.headers['Content-Length']))
 
         print('')
-        print('-' * 17)
+        print('-' * 80)
         print('Endpoint: {url}'.format(url=url))
-        print('Runs: {series}'.format(series=series))
-        print('Average:  {time}s'.format(time=sum(run_times) / series))
+        print('Runs: {series}'.format(series=self.opts.series))
+        print('Average:  {time}s'.format(time=sum(run_times) / self.opts.series))
         print('')
+
+
+def get_parse_args():
+    parser = argparse.ArgumentParser(description='SoloTester utility')
+    parser.add_argument('-b', '--base-url', default='http://127.0.0.1:8080', help='API endpoint')
+    parser.add_argument('-e', '--endpoint', required=True, help='API endpoint')
+    parser.add_argument('-m', '--method', default='GET', help='HTTP method (default = GET)')
+    parser.add_argument('-s', '--series', default=100, help='Number of run series')
+
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    endpoint = '/api/session/current/?active=true'
-    verb = 'GET'
-    series = 500
-    verbose = True
+    opts = get_parse_args()
 
-    solo_tester = SoloTester(base_url='http://127.0.0.1:8080')
-    solo_tester.measure(endpoint=endpoint, verb=verb, series=series, verbose=verbose)
+    solo_tester = SoloTester(opts)
+    solo_tester.measure()
