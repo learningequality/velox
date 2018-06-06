@@ -142,15 +142,59 @@ class KolibriUserBehavior(TaskSet):
         return [{'username': u['username'], 'id':u['id'], 'facility':u['facility']}
                 for u in json.loads(r.content) if u['roles'] == []]
 
-    def load_resource(self, kind, with_timestamp=False):
+    def browse_resource(self, parent_node=None):
+        if not parent_node:
+            self.get_facility()
+
+            # randomly select a channel
+            channels = self.get_available_channels()
+            if not channels:
+                return
+            channel = random.choice(channels)
+
+            # get the channel data
+            parent_node = self.get_content_node(channel['id'])
+            if not parent_node:
+                return
+
+        # "click" on the node
+        self.get_content_node_ancestors(parent_node['id'])
+        child_nodes = self.get_content_nodes_by_parent(parent_node['id'])
+        if not child_nodes:
+            return
+
+        # randomly "click" on a content node item
+        child_node = random.choice(child_nodes)
+        kind = child_node['kind']
+
+        # if the child node item is topic, do another round
+        if kind == 'topic':
+            self.browse_resource(parent_node=child_node)
+
+        # simulate loading the "final" node
+        self.get_content_node_ancestors(child_node['id'])
+        self.get_next_content_node(child_node['id'])
+
+        resource = {'content_id': child_node['id'],
+                    'channel_id': child_node['channel_id'],
+                    'assessment_item_ids': None,
+                    'files': [file['download_url'] for file in child_node['files']]}
+        if kind == 'exercise':
+            assessment_item_ids = [child_node['assessment_item_ids']
+                                   for child_node in child_node['assessmentmetadata']]
+            resource['assessment_item_ids'] = assessment_item_ids
+
+        self.fetch_resource_files(resource, kind)
+
+    def load_resource(self, kind):
         if KolibriUserBehavior.KOLIBRI_RESOURCES[kind]:
             resource = random.choice(KolibriUserBehavior.KOLIBRI_RESOURCES[kind])
-            # less fetch all the resources:
-            for file_url in resource['files']:
-                if with_timestamp:
-                    file_url = file_url
-                self.client.get(file_url)
-            self.do_logging(resource, kind)
+            self.fetch_resource_files(resource, kind)
+
+    def fetch_resource_files(self, resource, kind):
+        for file_url in resource['files']:
+            self.client.get(file_url, timeout=KolibriUserBehavior.TIMEOUT)
+        self.do_logging(resource, kind)
 
     def get_logs_ids_dict(self):
         return {
@@ -304,14 +348,15 @@ class KolibriUserBehavior(TaskSet):
         assessment_id = random.choice(resource['assessment_item_ids'][0])
         assessment_link = '/zipcontent/{perseus}/{assessment_id}.json'.format(perseus=perseus,
                                                                               assessment_id=assessment_id)
-        r = self.client.get(assessment_link, headers=self.headers)
+        r = self.client.get(assessment_link, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT)
         if not r.status_code == 200:
             return False
         exercise_contents = json.loads(r.content)
         exercise_attempts = self.build_attempts(exercise_contents, resource, previous_attempt=None)
         # First attemptlog to receive id information
         attempt_url = '/api/attemptlog/'
-        r = self.client.post(attempt_url, data=exercise_attempts, headers=self.headers)
+        r = self.client.post(attempt_url, data=exercise_attempts, headers=self.headers,
+                             timeout=KolibriUserBehavior.TIMEOUT)
         if not r.status_code == 201:
             return False
 
@@ -319,7 +364,8 @@ class KolibriUserBehavior(TaskSet):
         attempt_id = exercise_attempts['id']
         attempt_url_patch = '/api/attemptlog/{}/'.format(attempt_id)
         # last attemptlog after the exercise is finished
-        r = self.client.patch(attempt_url_patch, data=exercise_attempts, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
+        r = self.client.patch(attempt_url_patch, data=exercise_attempts, headers=self.headers,
+                              timeout=KolibriUserBehavior.TIMEOUT,
                               name='/api/attemptlog/{}'.format(self.current_user['username']))
         return r.status_code == 200
 
@@ -400,5 +446,36 @@ class KolibriUserBehavior(TaskSet):
         triggers the update of the usersessionlog entry via Kolibri Django signals
         """
         log_url = '/api/session/current/?active=true'
-        r = self.client.get(log_url, headers=self.headers)
+        r = self.client.get(log_url, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT)
         return r.status_code == 200
+
+    def get_with_headers(self, url):
+        r = self.client.get(url, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT)
+        if r.status_code != 200:
+            return None
+        return json.loads(r.content)
+
+    def get_facility(self):
+        return self.get_with_headers('/api/facility/')
+
+    def get_available_channels(self):
+        return self.get_with_headers('/api/channel/?available=true')
+
+    def get_content_node(self, content_node_id):
+        url = '/api/contentnode/?ids={content_node_id}&by_role=true'.format(content_node_id=content_node_id)
+        try:
+            return self.get_with_headers(url)[0]
+        except TypeError:
+            return None
+
+    def get_content_node_ancestors(self, content_node_id):
+        url = '/api/contentnode/{content_node_id}/ancestors/'.format(content_node_id=content_node_id)
+        return self.get_with_headers(url)
+
+    def get_content_nodes_by_parent(self, content_node_id):
+        url = '/api/contentnode/?parent={content_node_id}&by_role=true'.format(content_node_id=content_node_id)
+        return self.get_with_headers(url)
+
+    def get_next_content_node(self, content_node_id):
+        url = '/api/contentnode/{content_node_id}/next_content/'.format(content_node_id=content_node_id)
+        return self.get_with_headers(url)

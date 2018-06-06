@@ -46,6 +46,10 @@ KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
 
 class UserBehavior(KolibriUserBehavior):
 
+    @task(30)
+    def browse_resources(self):
+        self.browse_resource()
+
     @task(40)
     def load_video_resources(self):
         self.load_resource('video')
