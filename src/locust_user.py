@@ -83,7 +83,7 @@ class KolibriUserBehavior(TaskSet):
 
     KOLIBRI_USERS = []
     RESOURCES = {'video': [], 'html5': [], 'document': [], 'exercise': []}
-    TIMEOUT = (1, 1)
+    TIMEOUT = (60, 60)
 
     def on_start(self):
         # retrieve headers for the current user

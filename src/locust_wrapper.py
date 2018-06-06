@@ -113,10 +113,10 @@ def launch(classname, n_clients, run_time=600):
     slave_args = [locust_executable, '--slave', '-f', test_path]
     for slave in range(n_clients):
         subprocess.Popen(slave_args, env={'KOLIBRI_BASE_URL': base_url})
-    time.sleep(5)
+        time.sleep(1)
     runners.locust_runner = MasterLocustRunner([classname], options)
     while len(runners.locust_runner.clients.ready) < options.expect_slaves:
-        time.sleep(5)
+        time.sleep(1)
     # spawn client spawning/hatching greenlets:
     runners.locust_runner.start_hatching(options.num_clients, options.hatch_rate)
     main_greenlet = runners.locust_runner.greenlet
