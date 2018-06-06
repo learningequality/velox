@@ -75,8 +75,7 @@ class WebsiteUser(HttpLocust):
 
 
 def run(learners=30):
-    rate = 40
-    launch(WebsiteUser, learners, rate, run_time=120)
+    launch(WebsiteUser, learners, run_time=120)
 
 
 if __name__ == '__main__':

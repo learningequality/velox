@@ -79,7 +79,7 @@ def get_or_create_output_dir():
     return output_dir
 
 
-def launch(classname, n_clients, rate, run_time=600):
+def launch(classname, n_clients, run_time=600):
     """
     Launches the tests
     :param: classname: class inherited from HttpLocust defining the test
@@ -93,7 +93,7 @@ def launch(classname, n_clients, rate, run_time=600):
     options = Namespace(**{
         'host': base_url,
         'num_clients': n_clients,
-        'hatch_rate': rate,
+        'hatch_rate': n_clients,  # this way it will be 1 request per second per client
         'num_requests': 9999999,  # obsolete, discontinued in new locust versions
         'run_time': run_time,
         'no_web': True,
@@ -111,12 +111,12 @@ def launch(classname, n_clients, rate, run_time=600):
     test_path = 'scenarios/{}.py'.format(classname.__module__)
     locust_executable = spawn.find_executable('locust')
     slave_args = [locust_executable, '--slave', '-f', test_path]
-    for slave in range(5):
+    for slave in range(n_clients):
         subprocess.Popen(slave_args, env={'KOLIBRI_BASE_URL': base_url})
-    time.sleep(1)
+    time.sleep(5)
     runners.locust_runner = MasterLocustRunner([classname], options)
     while len(runners.locust_runner.clients.ready) < options.expect_slaves:
-        time.sleep(1)
+        time.sleep(5)
     # spawn client spawning/hatching greenlets:
     runners.locust_runner.start_hatching(options.num_clients, options.hatch_rate)
     main_greenlet = runners.locust_runner.greenlet
