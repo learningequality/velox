@@ -12,6 +12,7 @@ Additionally, Kolibri instance should have user with 'admin:admin' credentials
 
 import argparse
 import requests
+import sys
 
 
 class SoloTester(object):
@@ -20,10 +21,22 @@ class SoloTester(object):
 
     def __init__(self, opts):
         self.opts = opts
-
         self.user_id = None
         self.headers = None
+
+        # probe the Kolibri server
+        self._test_server_connection()
+
+        # login, set user_id and headers information
         self._login()
+
+    def _test_server_connection(self):
+        try:
+            requests.get(self.opts.base_url)
+        except requests.exceptions.ConnectionError:
+            print('Connection Error, verify that server is running on {}'.format(
+                self.opts.base_url))
+            return sys.exit()
 
     def _login(self):
         data = {'username': SoloTester.USERNAME, 'password': SoloTester.PASSWORD}
@@ -41,10 +54,10 @@ class SoloTester(object):
                           data=data, headers=headers)
 
         self.user_id = r.json()['user_id']
-        self.headers =  {'X-CSRFToken': r.cookies['csrftoken'],
-                         'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
-                             session_id=r.cookies['sessionid'],
-                             csrf_token=r.cookies['csrftoken'])}
+        self.headers = {'X-CSRFToken': r.cookies['csrftoken'],
+                        'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
+                            session_id=r.cookies['sessionid'],
+                            csrf_token=r.cookies['csrftoken'])}
 
     def measure(self):
         if self.opts.target:
