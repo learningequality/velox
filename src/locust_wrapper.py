@@ -108,7 +108,10 @@ def launch(classname, n_clients, rate, run_time=600):
     })
 
     setup_logging('INFO', None)
-    test_path = 'scenarios/{}.py'.format(classname.__module__)
+    if classname.__module__ == '__main__':
+        test_path = 'scenarios/{}.py'.format(get_test_calling())
+    else:
+        test_path = 'scenarios/{}.py'.format(classname.__module__)
     locust_executable = spawn.find_executable('locust')
     slave_args = [locust_executable, '--slave', '-f', test_path]
     for slave in range(5):
