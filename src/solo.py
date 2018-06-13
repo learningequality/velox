@@ -83,24 +83,28 @@ class SoloTester(object):
             else:
                 r = requests.request(method, url, headers=self.headers)
 
-            run_time = r.elapsed.total_seconds()
+            run_time = r.elapsed.total_seconds() * 1000
             run_times.append(run_time)
 
-            run_time_display = str(run_time).ljust(8, '0')
+            run_time_display = str(run_time).ljust(7, '0')
             status_code_display = '{status} {status_description}'.format(
                 status=r.status_code,
                 status_description=requests.status_codes._codes[r.status_code][0].replace('_', ' ').upper())
 
-            print('Run {run: <5} time={time: <8}s   status={status_code}   size={content_size}B'.format(
+            print('Run {run: <5} time={time: <7}ms   status={status_code}   size={content_size}B'.format(
                 run=i + 1, time=run_time_display, status_code=status_code_display,
                 content_size=r.headers['Content-Length']))
+
+            print('')
+            print(r.json())
+            print('')
 
         print('')
         print('-' * 80)
         print('Method:    {method}'.format(method=method))
         print('Endpoint:  {url}'.format(url=url))
         print('Runs:      {series}'.format(series=self.opts.series))
-        print('Average:   {time}s'.format(time=sum(run_times) / self.opts.series))
+        print('Average:   {time}ms'.format(time=sum(run_times) / self.opts.series))
         print('')
 
     def _post_contentsessionlog(self):
@@ -116,6 +120,58 @@ class SoloTester(object):
             'start_timestamp': '2018-06-06T19:01:19.764926Z',
             'time_spent': 0,
             'user': self.user_id
+        }
+        return method, endpoint, data
+
+    def _patch_contentsessionlog(self):
+        method = 'PATCH'
+        endpoint = '/api/contentsessionlog/edcefe88c2deb823e18fd9daf94679b0/'
+        data = {
+            'channel_id': '1a9158aa082a460b9ea693ba329e0770',
+            'content_id': '0d62c6ce0b1949f8b5d27e377983227a',
+            'end_timestamp': '2018-06-06T19:01:19.764926Z',
+            'extra_fields': '{}',
+            'kind': 'exercise',
+            'progress': 0,
+            'start_timestamp': '2018-06-06T19:01:19.764926Z',
+            'time_spent': 0,
+            'user': self.user_id
+        }
+        return method, endpoint, data
+
+    def _post_contentsummarylog(self):
+        method = 'POST'
+        endpoint = '/api/contentsummarylog/'
+        data = {
+            'channel_id': '1a9158aa082a460b9ea693ba329e0770',
+            'content_id': '0d62c6ce0b1949f8b5d27e377983227a',
+            'end_timestamp': '2018-06-06T19:01:19.764926Z',
+            'extra_fields': '{}',
+            'kind': 'exercise',
+            'progress': 0,
+            'start_timestamp': '2018-06-06T19:01:19.764926Z',
+            'time_spent': 0,
+            'user': self.user_id,
+            'completion_timestamp': None,
+            'currentmasterylog': None
+        }
+        return method, endpoint, data
+
+    def _patch_contentsummarylog(self):
+        method = 'PATCH'
+        endpoint = '/api/contentsummarylog/3a3785e27082b26868a9726cf7ede656/'
+        data = {
+            'channel_id': '1a9158aa082a460b9ea693ba329e0770',
+            'content_id': '0d62c6ce0b1949f8b5d27e377983227a',
+            'end_timestamp': '2018-06-06T19:01:19.764926Z',
+            'extra_fields': '{}',
+            'kind': 'exercise',
+            'progress': 0,
+            'start_timestamp': '2018-06-06T19:01:19.764926Z',
+            'time_spent': 0,
+            'user': self.user_id,
+            'completion_timestamp': None,
+            'currentmasterylog': None
         }
         return method, endpoint, data
 
