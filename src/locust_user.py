@@ -84,6 +84,7 @@ class KolibriUserBehavior(TaskSet):
     KOLIBRI_USERS = []
     RESOURCES = {'video': [], 'html5': [], 'document': [], 'exercise': []}
     TIMEOUT = (60, 60)
+    RANDOMIZE = True
 
     def on_start(self):
         # retrieve headers for the current user
@@ -146,11 +147,11 @@ class KolibriUserBehavior(TaskSet):
         if not parent_node:
             self.get_facility()
 
-            # randomly select a channel
+            # select a channel
             channels = self.get_available_channels()
             if not channels:
                 return
-            channel = random.choice(channels)
+            channel = random.choice(channels) if KolibriUserBehavior.RANDOMIZE else channels[0]
 
             # get the channel data
             parent_node = self.get_content_node(channel['id'])
@@ -163,8 +164,8 @@ class KolibriUserBehavior(TaskSet):
         if not child_nodes:
             return
 
-        # randomly "click" on a content node item
-        child_node = random.choice(child_nodes)
+        # "click" on a content node item
+        child_node = random.choice(child_nodes) if KolibriUserBehavior.RANDOMIZE else child_nodes[0]
         kind = child_node['kind']
 
         # if the child node item is topic, do another round
@@ -180,15 +181,19 @@ class KolibriUserBehavior(TaskSet):
                     'assessment_item_ids': None,
                     'files': [file['download_url'] for file in child_node['files']]}
         if kind == 'exercise':
-            assessment_item_ids = [child_node['assessment_item_ids']
-                                   for child_node in child_node['assessmentmetadata']]
+            assessment_item_ids = [node['assessment_item_ids']
+                                   for node in child_node['assessmentmetadata']]
             resource['assessment_item_ids'] = assessment_item_ids
 
         self.fetch_resource_files(resource, kind)
 
     def load_resource(self, kind):
-        if KolibriUserBehavior.KOLIBRI_RESOURCES[kind]:
-            resource = random.choice(KolibriUserBehavior.KOLIBRI_RESOURCES[kind])
+        resources_per_kind = KolibriUserBehavior.KOLIBRI_RESOURCES[kind]
+        if resources_per_kind:
+            if KolibriUserBehavior.RANDOMIZE:
+                resource = random.choice(resources_per_kind)
+            else:
+                resource = resources_per_kind[0]
             self.fetch_resource_files(resource, kind)
 
     def fetch_resource_files(self, resource, kind):
@@ -345,7 +350,10 @@ class KolibriUserBehavior(TaskSet):
             if data.endswith('.perseus'):
                 perseus = data
                 break
-        assessment_id = random.choice(resource['assessment_item_ids'][0])
+        if KolibriUserBehavior.RANDOMIZE:
+            assessment_id = random.choice(resource['assessment_item_ids'][0])
+        else:
+            assessment_id = resource['assessment_item_ids'][0][0]
         assessment_link = '/zipcontent/{perseus}/{assessment_id}.json'.format(perseus=perseus,
                                                                               assessment_id=assessment_id)
         r = self.client.get(assessment_link, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT)
