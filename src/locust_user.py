@@ -426,7 +426,8 @@ class KolibriUserBehavior(TaskSet):
         interaction_history = [{'type': 'hint', 'answer': answer, 'timestamp': end}]
         if previous_attempt:
             # generate a random number of intents
-            for attempt in range(random.randint(1, 5)):
+            no_intents = random.randint(1, 5) if KolibriUserBehavior.RANDOMIZE else 5
+            for attempt in range(no_intents):
                 new_attempt = [{'type': 'answer', 'answer': answer, 'timestamp': end}]
                 interaction_history.append(new_attempt)
 
