@@ -151,7 +151,6 @@ class KolibriUserBehavior(TaskSet):
             channels = self.get_available_channels()
             if not channels:
                 return
-
             channel = random.choice(channels) if KolibriUserBehavior.RANDOMIZE else channels[0]
 
             # get the channel data
@@ -182,8 +181,8 @@ class KolibriUserBehavior(TaskSet):
                     'assessment_item_ids': None,
                     'files': [file['download_url'] for file in child_node['files']]}
         if kind == 'exercise':
-            assessment_item_ids = [child_node['assessment_item_ids']
-                                   for child_node in child_node['assessmentmetadata']]
+            assessment_item_ids = [node['assessment_item_ids']
+                                   for node in child_node['assessmentmetadata']]
             resource['assessment_item_ids'] = assessment_item_ids
 
         self.fetch_resource_files(resource, kind)
@@ -351,7 +350,6 @@ class KolibriUserBehavior(TaskSet):
             if data.endswith('.perseus'):
                 perseus = data
                 break
-
         if KolibriUserBehavior.RANDOMIZE:
             assessment_id = random.choice(resource['assessment_item_ids'][0])
         else:
