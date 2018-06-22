@@ -19,6 +19,7 @@ except ImportError:
 admin = AdminUser(base_url=os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000'))
 KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
 KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
+KolibriUserBehavior.RANDOMIZE = False
 
 
 class UserBehavior(KolibriUserBehavior):
@@ -51,16 +52,8 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def on_request_failure(request_type, name, response_time, response_length):
-    """
-    Event handler that get triggered on every successful request
-    """
-    print(request_type)
-
-
 def run(learners=30):
-    rate = 5
-    launch(WebsiteUser, learners, rate, run_time=60)
+    launch(WebsiteUser, learners, run_time=30)
 
 
 if __name__ == '__main__':
