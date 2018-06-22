@@ -42,7 +42,6 @@ except ImportError:
 admin = AdminUser(base_url=os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000'))
 KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
 KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
-KolibriUserBehavior.RANDOMIZE = False
 
 class UserBehavior(KolibriUserBehavior):
 
