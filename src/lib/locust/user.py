@@ -68,7 +68,7 @@ class AdminUser(object):
         resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
         if not self.headers:
             self.login_admin()
-        r = requests.get('{base_url}/api/contentnode/all_content/?by_role=true'.format(base_url=self.base_url),
+        r = requests.get('{base_url}/api/contentnode/?popular=true'.format(base_url=self.base_url),
                          headers=self.headers, timeout=AdminUser.TIMEOUT)
         if r.status_code != 200:
             return resources
