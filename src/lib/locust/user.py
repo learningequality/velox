@@ -139,7 +139,7 @@ class KolibriUserBehavior(TaskSet):
         except KeyError:
             # we probably got empty response, let's try again
             time.sleep(1)
-            self.get_headers()
+            return self.get_headers()
         cookie_header = 'sessionid={session_id}; csrftoken={csrf_token}'.format(
             session_id=self.session_id, csrf_token=self.csrf_token)
         return {'X-CSRFToken': self.csrf_token, 'Cookie': cookie_header}
