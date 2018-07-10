@@ -30,10 +30,11 @@ class AdminUser(object):
         # users with coach or admin role need password to login:
         r = requests.get('{base_url}/user/'.format(base_url=self.base_url), timeout=AdminUser.TIMEOUT)
         csrf_token = r.cookies['csrftoken']
-        session_id = r.cookies['sessionid']
+        session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
+        session_id = r.cookies[session_identifier]
 
-        cookie_header = 'sessionid={session_id}; csrftoken={csrf_token}'.format(session_id=session_id,
-                                                                                csrf_token=csrf_token)
+        cookie_header = '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
+            session_identifier=session_identifier, session_id=session_id, csrf_token=csrf_token)
         headers = {'X-CSRFToken': csrf_token, 'Cookie': cookie_header}
 
         r = requests.post('{base_url}/api/session/'.format(base_url=self.base_url), data=data, headers=headers,
@@ -41,8 +42,9 @@ class AdminUser(object):
 
         # update headers with the new set of entries
         self.headers = {'X-CSRFToken': r.cookies['csrftoken'],
-                        'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
-            session_id=r.cookies['sessionid'], csrf_token=r.cookies['csrftoken'])}
+                        'Cookie': '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
+                            session_identifier=session_identifier, session_id=r.cookies[session_identifier],
+                            csrf_token=r.cookies['csrftoken'])}
 
     def get_users(self):
         if not self.headers:
@@ -119,9 +121,10 @@ class KolibriUserBehavior(TaskSet):
         r = self.client.post('/api/session/', data=data, headers=headers,
                              timeout=KolibriUserBehavior.TIMEOUT)
         # update headers with the new set of entries
+        session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
         self.set_headers({'X-CSRFToken': r.cookies['csrftoken'],
-                          'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
-                              session_id=r.cookies['sessionid'],
+                          'Cookie': '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
+                              session_identifier=session_identifier, session_id=r.cookies[session_identifier],
                               csrf_token=r.cookies['csrftoken'])})
         return r.status_code == 200
 
@@ -135,13 +138,14 @@ class KolibriUserBehavior(TaskSet):
         r = self.client.get('/user/', timeout=KolibriUserBehavior.TIMEOUT)
         try:
             self.csrf_token = r.cookies['csrftoken']
-            self.session_id = r.cookies['sessionid']
+            session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
+            self.session_id = r.cookies[session_identifier]
         except KeyError:
             # we probably got empty response, let's try again
             time.sleep(1)
             return self.get_headers()
-        cookie_header = 'sessionid={session_id}; csrftoken={csrf_token}'.format(
-            session_id=self.session_id, csrf_token=self.csrf_token)
+        cookie_header = '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
+            session_identifier=session_identifier, session_id=self.session_id, csrf_token=self.csrf_token)
         return {'X-CSRFToken': self.csrf_token, 'Cookie': cookie_header}
 
     def set_headers(self, headers):
