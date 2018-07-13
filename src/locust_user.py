@@ -27,18 +27,20 @@ class AdminUser(object):
         # users with coach or admin role need password to login:
         r = requests.get('{base_url}/user/'.format(base_url=self.base_url))
         csrf_token = r.cookies['csrftoken']
-        session_id = r.cookies['sessionid']
+        session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
+        session_id = r.cookies[session_identifier]
 
-        cookie_header = 'sessionid={session_id}; csrftoken={csrf_token}'.format(session_id=session_id,
-                                                                                csrf_token=csrf_token)
+        cookie_header = '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
+            session_identifier=session_identifier, session_id=session_id, csrf_token=csrf_token)
         headers = {'X-CSRFToken': csrf_token, 'Cookie': cookie_header}
 
         r = requests.post('{base_url}/api/session/'.format(base_url=self.base_url), data=data, headers=headers)
 
         # update headers with the new set of entries
         self.headers = {'X-CSRFToken': r.cookies['csrftoken'],
-                        'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
-            session_id=r.cookies['sessionid'], csrf_token=r.cookies['csrftoken'])}
+                        'Cookie': '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
+                            session_identifier=session_identifier, session_id=r.cookies[session_identifier],
+                            csrf_token=r.cookies['csrftoken'])}
 
     def get_users(self):
         if not self.headers:
@@ -114,9 +116,10 @@ class KolibriUserBehavior(TaskSet):
 
         r = self.client.post('/api/session/', data=data, headers=headers)
         # update headers with the new set of entries
+        session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
         self.set_headers({'X-CSRFToken': r.cookies['csrftoken'],
-                          'Cookie': 'sessionid={session_id}; csrftoken={csrf_token}'.format(
-                              session_id=r.cookies['sessionid'],
+                          'Cookie': '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
+                              session_identifier=session_identifier, session_id=r.cookies[session_identifier],
                               csrf_token=r.cookies['csrftoken'])})
         return r.status_code == 200
 
@@ -129,9 +132,10 @@ class KolibriUserBehavior(TaskSet):
     def get_headers(self):
         r = self.client.get('/user/')
         self.csrf_token = r.cookies['csrftoken']
-        self.session_id = r.cookies['sessionid']
-        cookie_header = 'sessionid={session_id}; csrftoken={csrf_token}'.format(
-            session_id=self.session_id, csrf_token=self.csrf_token)
+        session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
+        self.session_id = r.cookies[session_identifier]
+        cookie_header = '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
+            session_identifier=session_identifier, session_id=self.session_id, csrf_token=self.csrf_token)
         return {'X-CSRFToken': self.csrf_token, 'Cookie': cookie_header}
 
     def set_headers(self, headers):
@@ -151,7 +155,6 @@ class KolibriUserBehavior(TaskSet):
             channels = self.get_available_channels()
             if not channels:
                 return
-
             channel = random.choice(channels) if KolibriUserBehavior.RANDOMIZE else channels[0]
 
             # get the channel data
@@ -182,8 +185,8 @@ class KolibriUserBehavior(TaskSet):
                     'assessment_item_ids': None,
                     'files': [file['download_url'] for file in child_node['files']]}
         if kind == 'exercise':
-            assessment_item_ids = [child_node['assessment_item_ids']
-                                   for child_node in child_node['assessmentmetadata']]
+            assessment_item_ids = [node['assessment_item_ids']
+                                   for node in child_node['assessmentmetadata']]
             resource['assessment_item_ids'] = assessment_item_ids
 
         self.fetch_resource_files(resource, kind)
@@ -351,7 +354,6 @@ class KolibriUserBehavior(TaskSet):
             if data.endswith('.perseus'):
                 perseus = data
                 break
-
         if KolibriUserBehavior.RANDOMIZE:
             assessment_id = random.choice(resource['assessment_item_ids'][0])
         else:
