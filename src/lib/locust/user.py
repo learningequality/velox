@@ -8,12 +8,14 @@ import json
 import random
 import requests
 import sys
+import time
 
 from datetime import datetime as dt
 from locust import TaskSet
 
 
 class AdminUser(object):
+
     USERNAME = 'admin'
     PASSWORD = 'admin'
 
@@ -114,7 +116,8 @@ class KolibriUserBehavior(TaskSet):
         if not headers:
             headers = self.headers
 
-        r = self.client.post('/api/session/', data=data, headers=headers)
+        r = self.client.post('/api/session/', data=data, headers=headers,
+                             timeout=KolibriUserBehavior.TIMEOUT)
         # update headers with the new set of entries
         session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
         self.set_headers({'X-CSRFToken': r.cookies['csrftoken'],
@@ -176,20 +179,20 @@ class KolibriUserBehavior(TaskSet):
         if kind == 'topic':
             self.browse_resource(parent_node=child_node)
 
-        # simulate loading the "final" node
-        self.get_content_node_ancestors(child_node['id'])
-        self.get_next_content_node(child_node['id'])
+        # fetch the full data for the "final" node and set `skip_node_endpoint` to True
+        # when calling `do_resource` so that we don't fire that request for the 2nd time
+        final_node = self.get_content_node(child_node['id'])
 
-        resource = {'content_id': child_node['id'],
-                    'channel_id': child_node['channel_id'],
+        resource = {'content_id': final_node['id'],
+                    'channel_id': final_node['channel_id'],
                     'assessment_item_ids': None,
-                    'files': [file['download_url'] for file in child_node['files']]}
-        if kind == 'exercise':
-            assessment_item_ids = [node['assessment_item_ids']
-                                   for node in child_node['assessmentmetadata']]
+                    'files': [file['download_url'] for file in final_node['files']]}
+        if kind == 'exercise' and 'assessmentmetadata' in final_node:
+            assessment_item_ids = [assessment_item['assessment_item_ids']
+                                   for assessment_item in final_node['assessmentmetadata']]
             resource['assessment_item_ids'] = assessment_item_ids
 
-        self.fetch_resource_files(resource, kind)
+        self.do_resource(resource, kind, skip_node_endpoint=True)
 
     def load_resource(self, kind):
         resources_per_kind = KolibriUserBehavior.KOLIBRI_RESOURCES[kind]
@@ -198,29 +201,31 @@ class KolibriUserBehavior(TaskSet):
                 resource = random.choice(resources_per_kind)
             else:
                 resource = resources_per_kind[0]
-            self.fetch_resource_files(resource, kind)
+            self.do_resource(resource, kind)
 
-    def fetch_resource_files(self, resource, kind):
-        for file_url in resource['files']:
-            self.client.get(file_url, timeout=KolibriUserBehavior.TIMEOUT)
-        self.do_logging(resource, kind)
+    def do_resource(self, resource, kind, skip_node_endpoint=False):
+        """
+        This method simulates realistic usage scenario observed while interacting
+        with Kolibri directly in the browser
 
-    def get_logs_ids_dict(self):
-        return {
-            'contentsessionlog_id': None,
-            'masterylog_id': None,
-            'contentsummarylog_id': None,
-            'attemptlog_id': None
-        }
-
-    def do_logging(self, resource, kind):
+        If `skip_node_endpoint` has been passed as True, call to `get_content_node`
+        will be skipped, as we've already fired that request during content browsing
+        simulation and want to test as much realistically as possible
+        """
         content_id = resource['content_id']
         channel_id = resource['channel_id']
 
+        self.get_next_content_node(content_id)
         self.do_contentsessionlog(content_id, channel_id, kind)
         self.do_contentsummarylog(content_id, channel_id, kind)
+        self.get_content_node_ancestors(content_id)
         self.do_userprogress()
         self.do_usersessionlog()
+        self.fetch_resource_files(resource, kind)
+
+        # fetch contend node details only we haven't already done that while browsing content
+        if not skip_node_endpoint:
+            self.get_content_node(content_id)
 
         # log masterylog only if contentsummarylog has been logged and masterylog hasn't been yet
         if self.logs_ids.get('summarylog_id') and not self.logs_ids.get('masterylog_id'):
@@ -229,6 +234,18 @@ class KolibriUserBehavior(TaskSet):
         # log attemptlog only if content type is exercise
         if kind == 'exercise':
             self.do_attemptlog(resource)
+
+    def fetch_resource_files(self, resource, kind):
+        for file_url in resource['files']:
+            self.client.get(file_url, timeout=KolibriUserBehavior.TIMEOUT)
+
+    def get_logs_ids_dict(self):
+        return {
+            'contentsessionlog_id': None,
+            'masterylog_id': None,
+            'contentsummarylog_id': None,
+            'attemptlog_id': None
+        }
 
     def do_contentsessionlog(self, content_id, channel_id, kind):
         log_url = '/api/contentsessionlog/'

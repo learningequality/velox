@@ -23,16 +23,16 @@ from __future__ import print_function, unicode_literals
 from locust import HttpLocust, task
 
 try:
-    from locust_user import KolibriUserBehavior, AdminUser
-    from locust_wrapper import launch
+    from lib.locust.user import KolibriUserBehavior, AdminUser
+    from lib.locust.wrapper import launch
 except ImportError:
     # the test is being run out of velox environment
     # and velox package is not installed
     import os
     import sys
     sys.path.append(os.path.join(os.getcwd(), 'src'))
-    from locust_user import KolibriUserBehavior, AdminUser
-    from locust_wrapper import launch
+    from lib.locust.user import KolibriUserBehavior, AdminUser
+    from lib.locust.wrapper import launch
 
 
 class UserBehavior(KolibriUserBehavior):
