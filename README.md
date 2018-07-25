@@ -12,8 +12,11 @@ Thus, main goals of Velox are:
 
 ## Overview
 
-TBD
-
+Key points:
+    - able to automatically prepare Kolibri channels data necessary for the performance tests
+    - able to simulate clients using Kolibri content by sending API requests via [Locust](https://github.com/locustio/locust) load testing library
+    - supports SQLite (Kolibri default) and PostgreSQL database backends
+    - features fully configurable test scenarios written in Python
 
 ## Detailed documentation
 
