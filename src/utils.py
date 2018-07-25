@@ -296,7 +296,7 @@ def get_parse_args_definitions(wanted=None):
         ],
         'kolibri_exec': [
             '-ke', '--kolibri-exec', {
-                'required': False, 'help': 'command line to execute Kolibri cli'
+                'required': False, 'help': 'command to execute Kolibri cli'
             }
         ],
         'database': [
