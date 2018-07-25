@@ -13,7 +13,7 @@ You would want to use virtual machines if the underlying hardware you're testing
 
 ## Limiting resources
 
-As we're using [Vagrant] to provision the virtual machines, it's fairly easy to configure resources limitations by changing a few configuration options.
+As we're using [Vagrant](https://www.vagrantup.com) to provision the virtual machines, it's fairly easy to configure resources limitations by changing a few configuration options.
 
 By default, resources limitations defined via the `Vagrantfile` are:
 
@@ -38,8 +38,8 @@ Read more about how to configure the VirtualBox-powered Vagrant virtual machines
 ## Requirements
 
 * [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
-* [Vagrant](https://www.vagrantup.com/)
-* [Ansible](https://www.ansible.com/)
+* [Vagrant](https://www.vagrantup.com)
+* [Ansible](https://www.ansible.com)
 
 ## Setup
 
