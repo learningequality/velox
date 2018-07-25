@@ -1,9 +1,23 @@
+
 # Configuration options
 
 [Velox](../README.md) ⟶ [Detailed documentation](../README.md#detailed-documentation) ⟶ Configuration options
 
 
+## Overview
+
+Velox can be configured via the following available options:
+- passing CLI arguments when invoking Velox
+- configuring `settings` module
+
+## Configuration precedence list
+1) CLI arguments
+2) `settings` module
+3) internally set [default values](#default-values)
+
 ## CLI arguments
+
+Arguments available for passing when invoking Velox are listed in the following table:
 
 | Name           | Switch           | Abbreviated |
 | -------------- | ---------------- | ----------- |
@@ -17,13 +31,18 @@
 | test           | `--test`         | `-t`        |
 | iterations     | `--iterations`   | `-i`        |
 
-### Configuration precedence list
-1) CLI arguments
-2) `settings` module
-3) internally set [default values](#default-values)
-
 ## Using the `settings` module
-All CLI arguments can be configured within the `settings.py` module to allow configuring settings on a more permanent basis.
+To avoid passing additional arguments each time you want to call, it is possible to configure those within the `settings.py` module to allow configuring the settings on a more permanent basis.
+
+### Enable the `settings` module
+
+To enable the `settings` module, you only need to copy the template file named `settings.example.py` (located within the `src` directory) to the same directory and name it `settings.py`.
+
+E.g.:
+
+```cp src/settings.example.py src/settings.py```
+
+After that, you can edit the `settings.py` as per your needs and Velox will use it to look for the configuration settings the next time it's run.
 
 ###  Integer based settings
 `settings.py` keys with values set to `0` do not set those values to the actual value of `0` but rather denote that this key is supposed to be an integer. If left like this, `0` will be ignored (as there is no integer based setting where `0` value would make sense), and a default value for that key will be used. You can see a list of all the default values in the [Default values](#default-values) section.
@@ -50,7 +69,7 @@ Listed below are the internally set default values for the settings which act as
 ```
 {
     'kolibri_dev': '',
-    'kolibri_venv': os.path.join(os.path.expanduser('~'), os.path.join('.venvs', 'kolibri')),
+    'kolibri_venv': '~/.venvs/kolibri',
     'kolibri_exec': '',
     'database': 'sqlite',
     'channel': 'multiple',
