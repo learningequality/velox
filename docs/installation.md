@@ -1,9 +1,9 @@
-# Installing Velox
+# Installation
 ## Install requirements
 ### Kolibri (fully recommended)
 If a local Kolibri installation does not exist, many of the velox features can't be used. You can follow the [online developer documentation](http://kolibri-dev.readthedocs.io/en/develop/) to set up Kolibri development environment.
 
-Velox can work testing Kolibri servers available in the same network (or through Internet), with a set of limited features as explained in [Testing an external Kolibri server](docs/using-velox-externally.md). If that's the use case, Kolibri does not need to be installed.
+Velox can work testing Kolibri servers available in the same network (or through Internet), with a set of limited features as explained in [Testing an external Kolibri server](./using-velox-externally.md). If that's the use case, Kolibri does not need to be installed.
 
 ### PostgreSQL (optional)
 To be able to run tests with the PostgreSQL database backend, there are additional couple of steps to take.
