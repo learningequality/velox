@@ -25,7 +25,7 @@ In this document, we explain how to use each of them, but we'll focus in Django 
 
 https://github.com/someshchaturvedi/customizable-django-profiler
 
-#### Setup
+### Setup
 
 ```bash
 pip install customizable-django-profiler
@@ -68,11 +68,11 @@ Where:
 
 
 
-#### Pros
+### Pros
 
 ​	When used together with *snakeviz*, it is a really useful tool to analyze where time is spent in every request.
 
-#### Cons
+### Cons
 
 ​	The profiler had a couple of bugs, including a memory leak, and it didn’t allow filtering PATCH requests nor creating binary profiling dumps. However, they quickly accepted [two](https://github.com/someshchaturvedi/customizable-django-profiler/pull/3) [PR](https://github.com/someshchaturvedi/customizable-django-profiler/pull/4) to solve these problems and the latest version has all the features we need. 
 
@@ -134,16 +134,16 @@ After we profiled and performed optimizations:
 
 Sources at https://github.com/joerick/pyinstrument 
 
-#### Setup
+### Setup
 
 Instructions are provided at https://github.com/joerick/pyinstrument 
 
-#### Pros
+### Pros
 
 1. The output is a really nice html page that, when viewed in a browser, contains some javascript that allows navigating easily through the requests, looking at all the measurements.
 2. It’s damn fast, it has a C extension that filters out requests < 1ms to get a fast response without altering too much the normal behaviour of the analyzed code.
 
-#### Cons
+### Cons
 
 It does not have an option to select the endpoint that is going to be profiled, so when many different endpoints are called from the backend, it produces a lot of profiling info that’s mostly noise. 
 

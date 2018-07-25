@@ -12,9 +12,9 @@ Velox can work testing Kolibri servers available in the same network (or through
 
 ### PostgreSQL (optional)
 To be able to run tests with the PostgreSQL database backend, there are additional couple of steps to take.
-##### Install PostgreSQL server
+#### Install PostgreSQL server
 Make sure that [PostgreSQL](https://www.postgresql.org/) server is installed on your system and listening on port `5432`.
-##### Install Kolibri PostgreSQL dependencies
+#### Install Kolibri PostgreSQL dependencies
 Install Kolibri PostgresSQL related package dependencies by running the following command within the **Kolibri installation directory** (repository) and using the **Kolibri virtualenv** (as this is a Kolibri, not Velox, package requirement):
 
 ```pip install -r requirements/postgres.txt```
@@ -25,7 +25,6 @@ Install Kolibri PostgresSQL related package dependencies by running the followin
 - Activate the virtualenv
 - run `pip install -r requirements.txt` to retrieve dependencies
 - run `cp src/settings.example.py src/settings.py` to have some default `settings`
-
 
 ------
 
