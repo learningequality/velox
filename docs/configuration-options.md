@@ -31,7 +31,7 @@ Velox can be configured via the following available options:
 | test           | `--test`         | `-t`        |
 | iterations     | `--iterations`   | `-i`        |
 
-### Options details
+### Options in detail
 
 #### `kolibri_dev`
 Defines path to the Kolibri development installation.
