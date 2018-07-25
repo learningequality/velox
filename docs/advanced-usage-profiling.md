@@ -99,28 +99,34 @@ The page has two options for the view: *Sunburst* & *Icicle*
 
 Sunburst is well explained at https://jiffyclub.github.io/snakeviz/#interpreting-results
 
-![Sunburst](./sunburst.png)
+![Sunburst](./resources/sunburst.png)
 
 
 
 *Icicle* is the one that has seemed most useful to debug/profile Kolibri as the waterfall view made it easy to find how the time was distributed.
 
-**![Icicle](./icicle.png)**
+![Icicle](./resources/icicle.png)
 
 Clicking on any of the calls will make the server generate a new chart, zooming into the selected call.
 
-**![Zooming Icicle](./icicle_zoom.png)**
+![Zooming Icicle](./resources/icicle_zoom.png)
 
 
 To go back to the main view, the top left reset button can be used.
+
+
 
 #### Profiling results example
 
 Original code execution times:
 
-**![Before profiling](./before_profiling.png)**After we profiled and performed optimizations:
+![Before profiling](./resources/before_profiling.png)
 
-**![Profiled](./profiled.png)**
+After we profiled and performed optimizations:
+
+![Profiled](./resources/profiled.png)
+
+
 
 
 
@@ -156,10 +162,3 @@ It does not have an option to select the endpoint that is going to be profiled, 
   - Advanced usage
     - [Virtual machines](./advanced-usage-vms.md)
     - **Kolibri profiling**
-```
-
-```
-
-```
-
-```
