@@ -2,7 +2,6 @@
 
 [Detailed documentation](../README.md#detailed-documentation) ⟶ Configuration options
 
---
 
 ## CLI arguments
 
