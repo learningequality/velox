@@ -1,6 +1,6 @@
 # Configuration options
 
-[Detailed documentation](../README.md#detailed-documentation) ⟶ Configuration options
+[Velox](../README.md) ⟶ [Detailed documentation](../README.md#detailed-documentation) ⟶ Configuration options
 
 
 ## CLI arguments
@@ -69,11 +69,12 @@ Listed below are the internally set default values for the settings which act as
 
 ## Table of Contents
 
-- [Installation](docs/installation.md)
-- **Configuration options**
-- Using Velox
-    - [Internally](docs/using-velox-internally.md)
-    - [Testing an external Kolibri server](docs/using-velox-externally.md)
-- Advanced usage
-    - [Virtual machines](docs/advanced-usage-vms.md)
-    - [Kolibri profiling](docs/advanced-usage-profiling.md)
+- [Velox](../README.md)
+  - [Installation](./installation.md)
+  - **Configuration options**
+  - Using Velox
+    - [Internally](./using-velox-internally.md)
+    - [Testing an external Kolibri server](./using-velox-externally.md)
+  - Advanced usage
+    - [Virtual machines](./advanced-usage-vms.md)
+    - [Kolibri profiling](./advanced-usage-profiling.md)

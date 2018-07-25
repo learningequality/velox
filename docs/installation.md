@@ -1,5 +1,10 @@
 # Installation
+
+[Velox](../README.md) ⟶ [Detailed documentation](../README.md#detailed-documentation) ⟶ Installation
+
+
 ## Install requirements
+
 ### Kolibri (fully recommended)
 If a local Kolibri installation does not exist, many of the velox features can't be used. You can follow the [online developer documentation](http://kolibri-dev.readthedocs.io/en/develop/) to set up Kolibri development environment.
 
@@ -22,13 +27,12 @@ Install Kolibri PostgresSQL related package dependencies by running the followin
 - run `cp src/settings.example.py src/settings.py` to have some default `settings`
 
 
-
 ------
 
 ## Table of Contents
 
 - [Velox](../README.md)
-  - [Installation](./installation.md)
+  - **Installation**
   - [Configuration options](./configuration-options.md)
   - Using Velox
     - [Internally](./using-velox-internally.md)
