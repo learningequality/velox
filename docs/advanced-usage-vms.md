@@ -116,6 +116,7 @@ If this is the case, you can:
   - [Installation](./installation.md)
   - [Configuration options](./configuration-options.md)
   - [Using Velox](./using-velox.md)
+  - [Test results](./test-results.md)
   - Advanced usage
     - **Virtual machines**
     - [Kolibri profiling](./advanced-usage-profiling.md)

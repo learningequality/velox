@@ -155,6 +155,7 @@ Listed below are the internally set default values for the settings which act as
   - [Installation](./installation.md)
   - **Configuration options**
   - [Using Velox](./using-velox.md)
+  - [Test results](./test-results.md)
   - Advanced usage
     - [Virtual machines](./advanced-usage-vms.md)
     - [Kolibri profiling](./advanced-usage-profiling.md)

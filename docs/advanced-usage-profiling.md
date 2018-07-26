@@ -140,6 +140,7 @@ It does not have an option to select the endpoint that is going to be profiled, 
   - [Installation](./installation.md)
   - [Configuration options](./configuration-options.md)
   - [Using Velox](./using-velox.md)
+  - [Test results](./test-results.md)
   - Advanced usage
     - [Virtual machines](./advanced-usage-vms.md)
     - **Kolibri profiling**
