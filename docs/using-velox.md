@@ -9,6 +9,16 @@ This document explains how to use the Velox tool to run the stress tests after y
 
 You can run `python src/velox.py -h`  to see more info on the available command line options, and [here](./configuration-options.md#options-in-detail) you can read about all the options in greater detail.
 
+Running velox will:
+
+- Bootstrap one Kolibri server and fill the needed data (users, classrooms, channels), unless an external Kolibri url is provided.
+- Launch one Python thread per user.
+- Each thread will run one of the tasks described in a `scenario`file per second. These tasks will consist on one or several requests to the server that's under test.
+- Leave the statistics of the results in a csv file inside the `output/locust` directory.
+- Stops after `run_time` is reached.
+
+The way to parametrize some of these options is described in the following sections.
+
 ## Ways to run Velox
 It is possible to use Velox in various configurations:
 - Velox runs the Kolibri server using a **Kolibri development environment** and tests it
@@ -23,7 +33,7 @@ No matter which of the different ways of running Velox is selected, a scenario m
 
 Current Velox code provides several scenarios, being `scenarios/multiple_clients_multiple_resources.py` and `scenarios/multiple_clients_single_resources.py` the most common use cases.
 
-These scenarios are coded to be compatible with the `Locust`library we use to do the massive requests and fetch the statistics. The must have always the same structure with some boilerplate containing the needed  Python imports. They have also several constants. If the `settings.py`file contains the same constants, the scenario values will be ignored, if not the scenario parameters will be used.
+These scenarios are coded to be compatible with the `Locust` library we use to do the massive requests and fetch the statistics. They must have always the same structure with some boilerplate containing the needed  Python imports. They have also several constants. If the `settings.py`file contains the same constants, the scenario values will be ignored, if not the scenario parameters will be used.
 
 Here we can see them:
 
