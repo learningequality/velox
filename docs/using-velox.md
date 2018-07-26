@@ -4,7 +4,45 @@
 
 
 ## Overview
+This document explains how to use the Velox tool to run the stress tests after you've successfully [installed](./installation.md) the requirements and [configured](./configuration-options.md) all the steps necessary for it to function properly.
 
+You can run `python src/velox.py -h`  to see more info on the available command line options, and [here](./configuration-options.md#options-in-detail) you can read about all the options in greater detail.
+
+## Ways to run Velox
+It is possible to use Velox in various configurations:
+- Velox runs the Kolibri server using a **Kolibri development environment** and tests it
+- Velox runs the Kolibri server using a **Kolibri executable (package)** and tests it
+- Velox tests an already running **Kolibri instance**
+
+## Run using a Kolibri development environment
+### Prerequisites
+To be able to use Velox to test the Kolibri server using a Kolibri development environment, first you should set up one. The documentation on how to do that can be found in the [Kolibri Developer Guide -> Setting up Kolibri for development](http://kolibri-dev.readthedocs.io/en/develop/start/getting_started.html#setting-up-kolibri-for-development)).
+
+### Required arguments
+In order to run Velox in this configuration, it is required to specify the following arguments:
+
+- `-kd` or `--kolibri-dev` — path to the Kolibri development installation
+- `-kv` or `--kolibri-venv` — path to the Kolibri virtualenv
+
+### Examples
+#### Minimum arguments required to run Velox
+
+```python src/velox.py -kd /path/to/kolibri/dev/installation -kv /path/to/kolibri/virtualenv```
+
+The above shown command expression is equivalent to the following one, which is using long argument switches:
+
+```python src/velox.py --kolibri-dev /path/to/kolibri/dev/installation --kolibri-venv /path/to/kolibri/virtualenv```
+
+### Kolibri virtualenv is located at `~/.venvs/kolibri`
+
+`-kv`  (`--kolibri-venv`) argument can be omitted if you have set up the Kolibri virtualenv at `~/.venvs/kolibri` (as mentioned in the [Kolibri Developer Guide -> Getting started -> Virtual environment section](http://kolibri-dev.readthedocs.io/en/develop/start/getting_started.html#virtual-environment)):
+
+```python src/velox.py -kd /path/to/kolibri/dev/installation```
+
+## Run using a Kolibri executable
+TBD
+
+## Run using an already running Kolibri instance
 TBD
 
 ------

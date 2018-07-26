@@ -147,7 +147,7 @@ def export_postgresql_dump(dump_path, opts, logger):
 def write_options_ini(template, dest, options, logger):
     """
     Render options.ini from a template file (located within the resources directory)
-    and write it to the specified destiation directory, using the passed `options`
+    and write it to the specified destination directory, using the passed `options`
     dictionary for the config options
     """
     tmpl_filename = 'options.{}.ini'.format(template)
