@@ -1,5 +1,3 @@
-
-
 # Virtual Machines
 
 [Velox](../README.md) ⟶ [Detailed documentation](../README.md#detailed-documentation) ⟶ [Advanced usage](../README.md#detailed-documentation) ⟶ Virtual machines
@@ -117,9 +115,7 @@ If this is the case, you can:
 - [Velox](../README.md)
   - [Installation](./installation.md)
   - [Configuration options](./configuration-options.md)
-  - Using Velox
-    - [Internally](./using-velox-internally.md)
-    - [Testing an external Kolibri server](./using-velox-externally.md)
+  - [Using Velox](./using-velox.md)
   - Advanced usage
     - **Virtual machines**
     - [Kolibri profiling](./advanced-usage-profiling.md)

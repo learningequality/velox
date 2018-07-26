@@ -68,7 +68,6 @@ Defines database backend which Kolibri is to use.
 Defines channels to be used for Kolibri content.
 
 ##### Options
-- `no` - no channel to use
 - `large` - single channel with the total content size of approx. 1Gb
 - `multiple` - 10 channels with the total content sizes of approx. 30 Mb each
 - `video` - channel with multiple videos
@@ -155,9 +154,7 @@ Listed below are the internally set default values for the settings which act as
 - [Velox](../README.md)
   - [Installation](./installation.md)
   - **Configuration options**
-  - Using Velox
-    - [Internally](./using-velox-internally.md)
-    - [Testing an external Kolibri server](./using-velox-externally.md)
+  - [Using Velox](./using-velox.md)
   - Advanced usage
     - [Virtual machines](./advanced-usage-vms.md)
     - [Kolibri profiling](./advanced-usage-profiling.md)
