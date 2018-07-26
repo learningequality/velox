@@ -17,7 +17,7 @@ It is possible to use Velox in various configurations:
 ## Run using a Kolibri development environment
 
 ### Prerequisites
-To be able to use Velox to test the Kolibri server using a Kolibri development environment, first you should set up one. The documentation on how to do that can be found in the [Kolibri Developer Guide -> Setting up Kolibri for development](http://kolibri-dev.readthedocs.io/en/develop/start/getting_started.html#setting-up-kolibri-for-development)).
+To be able to use Velox to test the Kolibri server using a Kolibri development environment, first you should set up one. The documentation on how to do that can be found in the [Kolibri Developer Guide -> Setting up Kolibri for development](http://kolibri-dev.readthedocs.io/en/develop/start/getting_started.html#setting-up-kolibri-for-development).
 
 When using this method, Velox will attempt to run a Kolibri server instance by calling the `kolibri` Python module within the Kolibri development installation targeting the Python interpreter from the Kolibri virtualenv defined by the `-kv` (`--kolibri-venv`) argument.
 
