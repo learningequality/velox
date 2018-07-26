@@ -68,7 +68,6 @@ Defines database backend which Kolibri is to use.
 Defines channels to be used for Kolibri content.
 
 ##### Options
-- `no` - no channel to use
 - `large` - single channel with the total content size of approx. 1Gb
 - `multiple` - 10 channels with the total content sizes of approx. 30 Mb each
 - `video` - channel with multiple videos

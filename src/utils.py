@@ -307,8 +307,8 @@ def get_parse_args_definitions(wanted=None):
         ],
         'channel': [
             '-c', '--channel', {
-                'required': False, 'choices': ['no', 'large', 'multiple', 'video', 'exercise'],
-                'help': 'Channels to use in Kolibri: no (no channel), large (1 large channel ~ 1Gb),\n'
+                'required': False, 'choices': ['large', 'multiple', 'video', 'exercise'],
+                'help': 'Channels to use in Kolibri: large (1 large channel ~ 1Gb),\n'
                         'multiple (10 x ~30 Mb channels), video (channel with multiple videos),\n'
                         'exercise (channel with multiple exercises)'
             }
