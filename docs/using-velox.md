@@ -44,7 +44,41 @@ The above shown command expression is equivalent to the following one, which is 
 ```python src/velox.py -kd /path/to/kolibri/dev/installation```
 
 ## Run using a Kolibri executable
-TBD
+
+### Prerequisites
+To use Velox to test the Kolibri server using a Kolibri executable, you should be able to run Kolibri server simply by calling the Kolibri executable, from any location on your computer.
+
+This usually means that you should be able to run the following command to start the Kolibri server:
+
+```kolibri start```
+
+If the above command successfully ran the Kolibri server on your computer, Velox will also be able to run it in the same manner. (Note: don't forget to run `kolibri stop` after running the `start` command if you don't need this particular server instance running).
+
+### Required arguments
+
+`-ke`, ``--kolibri-exec`` argument is used to define the exact Kolibri executable which Velox should use to run an instance of the Kolibri server.
+
+Technically, specifying the above mentioned argument is only required if your particular executable differs from the default one: `kolibri`, which should not happen in most cases, meaning that this argument can be omitted
+
+### Examples
+
+#### Minimum arguments required to run Velox
+
+In case your Kolibri executable equals to the default `kolibri`, you can run Velox with no arguments at all:
+
+```python src/velox.py```
+
+as Velox will attempt to start an instance of the Kolibri server by running `kolibri start`.
+
+#### Specifying custom Kolibri executable
+
+In case your Kolibri executable differs from the default value of `kolibri`, you can pass the `-ke` (`--kolibri-exec`) argument:
+
+```python src/velox.py -ke your_kolibri_exec```
+
+or:
+
+```python src/velox.py --kolibri-exec your_kolibri_exec```
 
 ## Run using an already running Kolibri instance
 TBD
@@ -58,5 +92,5 @@ TBD
   - [Configuration options](./configuration-options.md)
   - **Using Velox**
   - Advanced usage
-    - **Virtual machines**
+    - [Virtual machines](./advanced-usage-vms.md)
     - [Kolibri profiling](./advanced-usage-profiling.md)
