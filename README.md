@@ -23,6 +23,7 @@ Key points:
 - [Installation](docs/installation.md)
 - [Configuration options](docs/configuration-options.md)
 - [Using Velox](docs/using-velox.md)
+- [Test results](docs/test-results.md)
 - Advanced usage
     - [Virtual machines](docs/advanced-usage-vms.md)
     - [Kolibri profiling](docs/advanced-usage-profiling.md)

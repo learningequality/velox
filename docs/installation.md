@@ -34,6 +34,7 @@ Install Kolibri PostgresSQL related package dependencies by running the followin
   - **Installation**
   - [Configuration options](./configuration-options.md)
   - [Using Velox](./using-velox.md)
+  - [Test results](./test-results.md)
   - Advanced usage
     - [Virtual machines](./advanced-usage-vms.md)
     - [Kolibri profiling](./advanced-usage-profiling.md)

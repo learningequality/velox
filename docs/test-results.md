@@ -39,7 +39,7 @@ TBD
   - [Installation](./installation.md)
   - [Configuration options](./configuration-options.md)
   - [Using Velox](./using-velox.md)
-  - [Test results](./test-results.md)
+  - **Test results**
   - Advanced usage
     - [Virtual machines](./advanced-usage-vms.md)
     - [Kolibri profiling](./advanced-usage-profiling.md)
