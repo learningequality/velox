@@ -11,8 +11,8 @@ You can run `python src/velox.py -h`  to see more info on the available command 
 ## Ways to run Velox
 It is possible to use Velox in various configurations:
 - Velox runs the Kolibri server using a **Kolibri development environment** and tests it
-- Velox runs the Kolibri server using a **Kolibri executable (package)** and tests it
-- Velox tests an already running **Kolibri instance**
+- Velox runs the Kolibri server using the installed **Kolibri executable application** and tests it
+- Velox tests an already running **Kolibri instance** available through the network (localhost, LAN or Internet)
 
 ## Run using a Kolibri development environment
 
