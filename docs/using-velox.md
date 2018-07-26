@@ -17,13 +17,13 @@ It is possible to use Velox in various configurations:
 
 ## Testing scenarios
 
-In order to Velox to be able to test Kolibri under different use cases, tests are going to run a python file  placed at the `scenarios` directory. 
+In order to Velox to be able to test Kolibri under different use cases, tests are going to run a python file  placed at the `scenarios` directory.
 
 No matter which of the different ways of running Velox is selected, a scenario must be provided always either in the `settings.py`file or as a command line argument.
 
 Current Velox code provides several scenarios, being `scenarios/multiple_clients_multiple_resources.py` and `scenarios/multiple_clients_single_resources.py` the most common use cases.
 
-These scenarios are coded to be compatible with the `Locust`library we use to do the massive requests and fetch the statistics. The must have always the same structure with some boilerplate containing the needed  Python imports. They have also several constants. If the `settings.py`file contains the same constants, the scenario values will be ignored, if not the scenario parameters will be used. 
+These scenarios are coded to be compatible with the `Locust`library we use to do the massive requests and fetch the statistics. The must have always the same structure with some boilerplate containing the needed  Python imports. They have also several constants. If the `settings.py`file contains the same constants, the scenario values will be ignored, if not the scenario parameters will be used.
 
 Here we can see them:
 
@@ -141,6 +141,7 @@ In this case, there are important limitations due to the fact that Velox is not 
  - [Installation](./installation.md)
  - [Configuration options](./configuration-options.md)
  - **Using Velox**
+ - [Test results](./test-results.md)
  - Advanced usage
    - [Virtual machines](./advanced-usage-vms.md)
    - [Kolibri profiling](./advanced-usage-profiling.md)
