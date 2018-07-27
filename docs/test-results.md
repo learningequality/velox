@@ -42,7 +42,7 @@ Looking at the above shown example, this would mean that 50% of the total reques
 
 ### Understanding the results
 
-_Requests_ `.csv` results file is pretty much self-explanatory -- it contains the stats for the following metrics:
+_Requests_ `.csv` results file is pretty much self-explanatory — it contains the stats for the following metrics:
 - total number of requests sent
 - number of failed requests
 - median response time

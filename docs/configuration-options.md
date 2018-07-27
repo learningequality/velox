@@ -68,10 +68,10 @@ Defines database backend which Kolibri is to use.
 Defines channels to be used for Kolibri content.
 
 ##### Options
-- `large` - single channel with the total content size of approx. 1Gb
-- `multiple` - 10 channels with the total content sizes of approx. 30 Mb each
-- `video` - channel with multiple videos
-- `exercise` - channel with multiple exercises
+- `large` — single channel with the total content size of approx. 1Gb
+- `multiple` — 10 channels with the total content sizes of approx. 30 Mb each
+- `video` — channel with multiple videos
+- `exercise` — channel with multiple exercises
 
 #### `learners`
 Defines number of learners per classroom which will be simulated when tests are run.
