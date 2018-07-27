@@ -79,13 +79,11 @@ def get_or_create_output_dir():
     return output_dir
 
 
-def launch(classname, n_clients, run_time=600):
+def launch(classname, n_clients, run_time=180):
     """
     Launches the tests
     :param: classname: class inherited from HttpLocust defining the test
-    :param: base_url: server and port of the url to request
     :param: n_clients: Number of concurrent users
-    :param: rate: The rate per second in which clients are spawned
     :param: run_time: Stop testing after the specified amount of seconds
     """
 
