@@ -1,4 +1,3 @@
-
 # Using Velox
 
 [Velox](../README.md) ⟶ [Detailed documentation](../README.md#detailed-documentation) ⟶ Using Velox
@@ -9,15 +8,14 @@ This document explains how to use the Velox tool to run the stress tests after y
 
 You can run `python src/velox.py -h`  to see more info on the available command line options, and [here](./configuration-options.md#options-in-detail) you can read about all the options in greater detail.
 
-Running velox will:
+After Velox has been run, it will:
 
-- Bootstrap one Kolibri server and fill the needed data (users, classrooms, channels), unless an external Kolibri url is provided.
-- Launch one Python thread per user.
-- Each thread will run one of the tasks described in a `scenario`file per second. These tasks will consist on one or several requests to the server that's under test.
-- Leave the statistics of the results in a csv file inside the `output/locust` directory.
-- Stops after `run_time` is reached.
-
-The way to parametrize some of these options is described in the following sections.
+- Start a Kolibri server and generate the necessary content data (users, classrooms, channels), unless an external Kolibri url is provided
+- Launch a single Python thread per user
+- Load test scenario file which was specified
+- Make sure that each thread runs one of the tasks described in a `scenario` file per second (Note: these tasks may result in one or several HTTP requests sent to the Kolibri server being tested)
+- Save the test statistics into in a csv file within the `output/locust` directory
+- Stop after `run_time` seconds have passed
 
 ## Ways to run Velox
 It is possible to use Velox in various configurations:
@@ -27,37 +25,39 @@ It is possible to use Velox in various configurations:
 
 ## Testing scenarios
 
-In order to Velox to be able to test Kolibri under different use cases, tests are going to run a python file  placed at the `scenarios` directory.
+Velox looks for test scenarios within the `scenarios` directory.
 
-No matter which of the different ways of running Velox is selected, a scenario must be provided always either in the `settings.py`file or as a command line argument.
+No matter which of the different ways of running Velox is selected, a scenario must always be provided, either in the `settings.py` file or as a command line argument.
 
-Current Velox code provides several scenarios, being `scenarios/multiple_clients_multiple_resources.py` and `scenarios/multiple_clients_single_resources.py` the most common use cases.
+At this time, Velox provides several predefined scenarios, of which the following are used most commonly:
+- `scenarios/multiple_clients_multiple_resources.py`
+- `scenarios/multiple_clients_single_resources.py`
 
-These scenarios are coded to be compatible with the `Locust` library we use to do the massive requests and fetch the statistics. They must have always the same structure with some boilerplate containing the needed  Python imports. They have also several constants. If the `settings.py`file contains the same constants, the scenario values will be ignored, if not the scenario parameters will be used.
+The above mentioned scenarios are written to be compatible with the [Locust](https://locust.io/) library used to generate a large number of HTTP request and produce statistics of that process. Thus, scenarios are required to contain a certain boilerplate structure with the Python imports necessary for proper function.
 
-Here we can see them:
+Due to some Locust-related restrictions, the scenarios should also contain the following code snippet to set several `KolibriUserBehavior` properties:
 
 ```python
 admin = AdminUser(base_url=os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000'))
 KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
 KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
 KolibriUserBehavior.RANDOMIZE = False
-...
+```
+
+`AdminUser` is a helper class used to login to Kolibri as an admin user and try to fetch the list of users, available channels and content resources.
+
+Setting `KolibriUserBehavior.RANDOMIZE` to `False` (default value is `True`) will force Velox to  always select the same resources and same intervals, in order to increase comparability across multiple test runs. If not set, the resources used to simulate browsing and using the content will be selected randomly.
+
+`run` function is mandatory as it is responsible for launching the actual test, e.g.:
+
+```python
 def run(learners=30):
     launch(WebsiteUser, learners, run_time=120)
-    ...
 ```
-All the admin part is going to be used to login into Kolibri as an admin user, if possible, and get the list of users Kolibri has and the available channels and content resources.
 
-`KolibriUserBehavior.RANDOMIZE = False` (default value is True) will force Velox selecting always the same resources and same intervals in all the run tests, to improve repeatibility. If it's not set, the resources every automated user will browse is selected randomly.
-
-The other parameters are self-explanatory:
-
-`learners` is the number of learners to simulate
-
-`run_time`is the time Velox will be launching requests against Kolibri
-
-
+`launch` function accepts two configurable parameters:
+- `learners` — number of learner users to simulate (defaults to `30`)
+- `run_time` — number of seconds during which Velox will be sending HTTP requests to Kolibri (defaults to `600`)
 
 ## Run using a Kolibri development environment
 
@@ -67,7 +67,7 @@ To be able to use Velox to test the Kolibri server using a Kolibri development e
 When using this method, Velox will attempt to run a Kolibri server instance loading it as a Python module. This is done by calling the `kolibri`  module within the Kolibri development installation. The path to the Kolibri installation is defined by the `-kd` (`--kolibri-dev`) argument, and path to the Kolibri virtualenv is defined by the `-kv` (`--kolibri-venv`) argument.
 
 ### Required parameters
-All the required parameters can be provided as arguments when calling velox or by writing them in the `src/settings.py` file
+All the required parameters can be provided as arguments when calling Velox or by adding them to  the `settings.py` file.
 
 In order to run Velox in this configuration, it is required to specify the following arguments:
 
@@ -78,23 +78,22 @@ If Kolibri virtualenv [is not located](http://kolibri-dev.readthedocs.io/en/deve
 ### Examples
 
 #### Minimum arguments required to run Velox
-Velox will need, in this configuration two parameters: the location of the virtualenv that Kolibri uses and the location of the Kolibri source code.
+In this configuration, two parameters are necessary:
+- path to the Kolibri virtualen
+- path to the Kolibri source code
 
-In order to run Velox in this configuration, we can do it either using the `settings.py` file or specifying the following arguments:
+This can be accomplished either by using command line arguments:
 
 ```python src/velox.py -kd /path/to/kolibri/dev/installation -kv /path/to/kolibri/virtualenv```
 
-
-
-or, having this `settings.py`:
+or, adding the following configuration options to the `settings.py`:
 ```python
 config = {
     'kolibri_dev': '/path/to/kolibri/dev/installation',
     'kolibri_venv': '/path/to/kolibri/virtualenv',
-
- ...
+     ...
 ```
-then velox can start just running:
+which is probably more convinient as then yoiu can run Velox simply by calling:
 ```python src/velox.py```
 
 
@@ -137,11 +136,9 @@ or:
 ```python src/velox.py --kolibri-exec your_kolibri_exec```
 
 ## Run using an already running Kolibri instance
-Velox architecture allows running a [Scenario](Testing scenarios) against an existing running Kolibri instance, without launching an automated one. Any Kolibri installation accesible via network can be tested adding the url info in the scenario file.
+Velox architecture allows running a [Scenario](Testing scenarios) against an existing running Kolibri instance, without launching one automatically. Any Kolibri installation accessible via network can be tested by configuring the url value in the scenario file.
 
-In this case, there are important limitations due to the fact that Velox is not controlling the kolibri instance and does not have some important information like the admin user credentials, usernames, etc.
-
-
+In this case, please be warned that there are important limitations due to the fact that Velox is unable to control the Kolibri instance and does not have access to some important information (e.g. the admin user credentials, list of users, etc.).
 
 ------
 
