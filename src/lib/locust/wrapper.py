@@ -79,16 +79,15 @@ def get_or_create_output_dir():
     return output_dir
 
 
-def launch(classname, n_clients, run_time=180, url=None):
+def launch(classname, n_clients, run_time=180):
     """
     Launches the tests
     :param: classname: class inherited from HttpLocust defining the test
-    :param: url: server and port of the url to request
     :param: n_clients: Number of concurrent users
     :param: run_time: Stop testing after the specified amount of seconds
     """
 
-    base_url = url or os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000')
+    base_url = os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000')
     options = Namespace(**{
         'host': base_url,
         'num_clients': n_clients,

@@ -154,22 +154,19 @@ KolibriUserBehavior.KOLIBRI_RESOURCES = ['/api/contentnode/012c1c73c01b4af9b3265
                                          '/downloadcontent/d97c27b51ee7a26c60ddfd193ca36861.perseus/Mental_Math_to_Evaluate_Products_Practice_Exercise.perseus',
                                          '/downloadcontent/211523265f53825b82f70ba19218a02e.mp4/Counting_with_small_numbers_Low_Resolution.mp4']
 ```
-   b) Provide the url of the Kolibri server that's going to be tested:
-   ```python
-def run(learners=30):
-    launch(WebsiteUser, learners, run_time=120, url='http://kolibridemo.learningequality.org/')
-   ```
+2. Launch the tests from the same velox source directory, invoking the scenario file directly and providing the external server url in the console:
 
-2. Launch the tests from the same velox source directory, invoking the scenario file directly
  ```bash
-   velox$ python scenarios/multiple_clients_multiple_resources.py
+velox$ KOLIBRI_BASE_URL=http://kolibridemo.learningequality.org/ python scenarios/multiple_clients_multiple_resources.py
  ```
- IMPORTANT: Running Velox this way has obvious limitations: Users must be able to login without password and the network can have a deep impact in the results if this is done through Internet.
 
-However, this is useful to test a Kolibri server being in the same LAN, in this case, for testing purposes, creating an user with `admin` as username and password will allow a complete Velox execution, being unneeded the above instructions. The only needed step is running Velox doing:
+
+**IMPORTANT**: Running Velox this way has signficant limitations: Users must be able to login without password and the network can have a deep impact in the results if this is done through Internet.
+
+However, being able to run Velox against an external instance is useful to test a Kolibri server being in the same LAN. In such case, for testing purposes, creating an user with `admin` as username and password will allow a complete Velox execution. Step `1` mentioned above would  not be necessary. The only needed step is running Velox doing:
 
 ```bash
-   velox$ KOLIBRI_BASE_URL=http://192.168.1.33:8080 python scenarios/multiple_clients_multiple_resources.py
+velox$ KOLIBRI_BASE_URL=http://192.168.1.33:8080 python scenarios/multiple_clients_multiple_resources.py
 ```
 
 being in this example `http://192.168.1.33:8080` the url of the server to be tested.
