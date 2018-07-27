@@ -13,7 +13,7 @@ After some investigation, two libraries seem to be suitable for profiling the ex
 - Pyinstrument, https://github.com/joerick/pyinstrumentCustomizable
 - Django Profiler, https://github.com/someshchaturvedi/customizable-django-profiler
 
-In this document, we explain how to use each of them, but we'll focus in Django Profiler because its feaures make it more suitable to test API requests.
+In this document, we explain how to use each of them, but we'll focus in Django Profiler because its features make it more suitable to test API requests.
 
 ## Customizable Django Profiler
 

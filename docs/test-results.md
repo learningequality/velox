@@ -5,7 +5,7 @@
 
 ## Overview
 
-As Velox uses 3rd party library [Locust](https://locust.io/) to do the actual load testing of a runnning Kolibri server instance, it is also conveniently using its test results output.
+As Velox uses 3rd party library [Locust](https://locust.io/) to do the actual load testing of a running Kolibri server instance, it is also conveniently using its test results output.
 
 ## Results
 

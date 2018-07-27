@@ -82,7 +82,7 @@ All the other parameters will be taken from the host machine `settings.py`, and 
 
 ```python src/velox.py -kd /home/vagrant/kolibri/ -kv /home/vagrant/.venvs/kolibri/ -c exercise```
 
-NOTE: PostgreSQL database backend is currently not suppored, so you will only be able to use `sqlite` with the `database` setting for the time being.
+NOTE: PostgreSQL database backend is currently not supported, so you will only be able to use `sqlite` with the `database` setting for the time being.
 
 ## Known issues
 

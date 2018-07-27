@@ -5,7 +5,7 @@
 
 ## Install requirements
 
-### Kolibri (fully recommended)
+### Kolibri (recommended)
 If a local Kolibri installation does not exist, many of the velox features can't be used. You can follow the [online developer documentation](http://kolibri-dev.readthedocs.io/en/develop/) to set up Kolibri development environment.
 
 Velox can work testing Kolibri servers available in the same network (or through Internet), with a set of limited features as explained in [Testing an external Kolibri server](./using-velox-externally.md). If that's the use case, Kolibri does not need to be installed.
@@ -23,8 +23,8 @@ Install Kolibri PostgresSQL related package dependencies by running the followin
 - Clone the Velox repository
 - Set up the virtualenv
 - Activate the virtualenv
-- run `pip install -r requirements.txt` to retrieve dependencies
-- run `cp src/settings.example.py src/settings.py` to have some default `settings`
+- Run `pip install -r requirements.txt` to retrieve dependencies
+- Run `cp src/settings.example.py src/settings.py` to set some default settings
 
 ------
 

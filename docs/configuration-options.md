@@ -123,7 +123,7 @@ To be able to run test scenarios with the PostgreSQL database backend enabled, y
 ### Channel mappings
 You shouldn't remove or add any new keys to the `channel_mappings` setting as it is currently dependant on the Velox code.
 
-This is probably going to change in the future in order to make it more configurable and independant of the codebase, but at this point, if you want to test against a specific channel, you could, for example, simply replace the currently set channel ID on one of the channel mappings and use that channel option (by specifying `-c` or `--channel` when running Velox, or using a configured setting).
+This is probably going to change in the future in order to make it more configurable and independent of the codebase, but at this point, if you want to test against a specific channel, you could, for example, simply replace the currently set channel ID on one of the channel mappings and use that channel option (by specifying `-c` or `--channel` when running Velox, or using a configured setting).
 
 ## Default values
 
