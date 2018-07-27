@@ -57,7 +57,7 @@ def run(learners=30):
 `launch` function accepts two configurable parameters:
 - `learners` — number of learner users to simulate (defaults to `30`)
 - `run_time` — number of seconds during which Velox will be sending HTTP requests to Kolibri (defaults to `600`)
-- `url` this is an optional parameter to pass the url of the 
+- `url` this is an optional parameter to pass the url of the
 
 ## Run using a Kolibri development environment
 
@@ -69,11 +69,13 @@ When using this method, Velox will attempt to run a Kolibri server instance load
 ### Required parameters
 All the required parameters can be provided as arguments when calling Velox or by adding them to  the `settings.py` file.
 
-In order to run Velox in this configuration, it is required to specify the following arguments:
+In order to run Velox in this configuration, it is required to specify the following argument:
 
-- `-kd` or `--kolibri-dev` -- path to the Kolibri development installation
-If Kolibri virtualenv [is not located](http://kolibri-dev.readthedocs.io/en/develop/start/getting_started.html#virtual-environment) at `~/.venvs/kolibri` we need to provide also :
-- `-kv` or `--kolibri-venv` -- path to the Kolibri virtualenv
+`-kd` or `--kolibri-dev` — path to the Kolibri development installation
+
+If Kolibri virtualenv [is not located](http://kolibri-dev.readthedocs.io/en/develop/start/getting_started.html#virtual-environment) at `~/.venvs/kolibri`, it is also required to provide:
+
+`-kv` or `--kolibri-venv` — path to the Kolibri virtualenv
 
 ### Examples
 
@@ -92,10 +94,10 @@ config = {
     'kolibri_dev': '/path/to/kolibri/dev/installation',
     'kolibri_venv': '/path/to/kolibri/virtualenv',
      ...
+}
 ```
 which is probably more convinient as then yoiu can run Velox simply by calling:
 ```python src/velox.py```
-
 
 
 ## Run using a Kolibri executable application
@@ -136,17 +138,15 @@ or:
 ```python src/velox.py --kolibri-exec your_kolibri_exec```
 
 ## Run using an already running Kolibri instance
-Velox architecture allows running a [Scenario](Testing scenarios) against an existing running Kolibri instance, without launching one automatically. Any Kolibri installation accessible via network can be tested by configuring the url value in the scenario file.
+Velox architecture allows running a [scenario](#testing-scenarios) against an existing running Kolibri instance, without launching one automatically. Any Kolibri installation accessible via network can be tested by configuring the url value in the scenario file.
 
 In this case, please be warned that there are important limitations due to the fact that Velox is unable to control the Kolibri instance and does not have access to some important information (e.g. the admin user credentials, list of users, etc.).
 
-To run it we need a list of users and the resources to be tested.
+To be able to run tests in this configuration, we need to retrieve a list of users and resources which are to be tested.
 
-1. Check the scenario file that's going to be used, and there:
-
-   a) Replace the admin section providing the users and resources
+1. Check the scenario file that is going to be used, and remove the section which is responsible for retreiving the users and resources (using the `AdminUser` helper class):
 ```python
-   # admin = AdminUser(base_url=os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000'))
+# admin = AdminUser(base_url=os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000'))
 # KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
 # KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
 KolibriUserBehavior.KOLIBRI_USERS = ['John', 'Amina']
@@ -154,26 +154,22 @@ KolibriUserBehavior.KOLIBRI_RESOURCES = ['/api/contentnode/012c1c73c01b4af9b3265
                                          '/downloadcontent/d97c27b51ee7a26c60ddfd193ca36861.perseus/Mental_Math_to_Evaluate_Products_Practice_Exercise.perseus',
                                          '/downloadcontent/211523265f53825b82f70ba19218a02e.mp4/Counting_with_small_numbers_Low_Resolution.mp4']
 ```
-2. Launch the tests from the same velox source directory, invoking the scenario file directly and providing the external server url in the console:
+2. Launch the tests from the same velox source directory, invoking the scenario file directly and providing the external Kolibri server url in the console:
 
  ```bash
 velox$ KOLIBRI_BASE_URL=http://kolibridemo.learningequality.org/ python scenarios/multiple_clients_multiple_resources.py
  ```
 
 
-**IMPORTANT**: Running Velox this way has signficant limitations: Users must be able to login without password and the network can have a deep impact in the results if this is done through Internet.
+**IMPORTANT**: Running Velox in this configuration has signficant limitations: users have to be able to login without password and the network latency can have a significant impact on the results if the tests are being done via Internet.
 
-However, being able to run Velox against an external instance is useful to test a Kolibri server being in the same LAN. In such case, for testing purposes, creating an user with `admin` as username and password will allow a complete Velox execution. Step `1` mentioned above would  not be necessary. The only needed step is running Velox doing:
+However, being able to run Velox against an external instance is useful to test a Kolibri server in the same LAN (Local Area Network). In that case, for testing purposes, if you create a user with `admin` / `admin` credentials for `username` and `password` fields, you will be able execute Velox. Step `1` mentioned above would not be necessary in that case. It would only be necessary to run Velox with the following environment variable set:
 
 ```bash
-velox$ KOLIBRI_BASE_URL=http://192.168.1.33:8080 python scenarios/multiple_clients_multiple_resources.py
+KOLIBRI_BASE_URL=http://192.168.1.33:8080 python scenarios/multiple_clients_multiple_resources.py
 ```
 
-being in this example `http://192.168.1.33:8080` the url of the server to be tested.
-
-
-
-
+In the above listed example, `http://192.168.1.33:8080` is the url of the Kolibri server which is to be tested.
 
 ------
 
@@ -187,7 +183,3 @@ being in this example `http://192.168.1.33:8080` the url of the server to be tes
  - Advanced usage
    - [Virtual machines](./advanced-usage-vms.md)
    - [Kolibri profiling](./advanced-usage-profiling.md)
-
-
-
-
