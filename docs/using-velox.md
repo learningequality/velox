@@ -10,22 +10,21 @@ You can run `python src/velox.py -h`  to see more info on the available command 
 
 After Velox has been run, it will:
 
-- Start a Kolibri server and generate the necessary content data (users, classrooms, channels), unless an external Kolibri url is provided
-- Launch a single Python thread per user
-- Load test scenario file which was specified
-- Make sure that each thread runs one of the tasks described in a `scenario` file per second (Note: these tasks may result in one or several HTTP requests sent to the Kolibri server being tested)
-- Save the test statistics into in a csv file within the `output/locust` directory
-- Stop after `run_time` seconds have passed
+- Start a Kolibri server and generate the necessary content data (users, classrooms, channels), unless an external Kolibri url is provided.
+- Launch a single Python thread per user.
+- Make sure that each thread runs one of the tasks described in a `scenario` file per second (Note: these tasks may result in one or several HTTP requests sent to the Kolibri server being tested).
+- Save the test statistics into in a csv file within the `output/locust` directory.
+- Stop after `run_time` seconds have passed.
 
 ## Ways to run Velox
 It is possible to use Velox in various configurations:
-- Velox runs the Kolibri server using a **Kolibri development environment** and tests it
-- Velox runs the Kolibri server using the installed **Kolibri executable application** and tests it
-- Velox tests an already running **Kolibri instance** available through the network (localhost, LAN or Internet)
+- Velox runs the Kolibri server using a **Kolibri development environment** and tests it.
+- Velox runs the Kolibri server using the installed **Kolibri executable application** and tests it.
+- Velox tests an already running **Kolibri instance** available through the network (localhost, LAN or Internet).
 
 ## Testing scenarios
 
-Velox looks for test scenarios within the `scenarios` directory.
+Velox looks for test scenarios files within the `scenarios` directory.
 
 No matter which of the different ways of running Velox is selected, a scenario must always be provided, either in the `settings.py` file or as a command line argument.
 
@@ -33,7 +32,7 @@ At this time, Velox provides several predefined scenarios, of which the followin
 - `scenarios/multiple_clients_multiple_resources.py`
 - `scenarios/multiple_clients_single_resources.py`
 
-The above mentioned scenarios are written to be compatible with the [Locust](https://locust.io/) library used to generate a large number of HTTP request and produce statistics of that process. Thus, scenarios are required to contain a certain boilerplate structure with the Python imports necessary for proper function.
+The scenarios must be written to be compatible with the [Locust](https://locust.io/) library. This library is used to generate a large number of HTTP request and produce statistics of the process. Thus, scenarios are required to contain a certain boilerplate structure with the Python imports necessary for proper function.
 
 Due to some Locust-related restrictions, the scenarios should also contain the following code snippet to set several `KolibriUserBehavior` properties:
 
@@ -58,6 +57,7 @@ def run(learners=30):
 `launch` function accepts two configurable parameters:
 - `learners` — number of learner users to simulate (defaults to `30`)
 - `run_time` — number of seconds during which Velox will be sending HTTP requests to Kolibri (defaults to `600`)
+- `url` this is an optional parameter to pass the url of the 
 
 ## Run using a Kolibri development environment
 
@@ -79,7 +79,7 @@ If Kolibri virtualenv [is not located](http://kolibri-dev.readthedocs.io/en/deve
 
 #### Minimum arguments required to run Velox
 In this configuration, two parameters are necessary:
-- path to the Kolibri virtualen
+- path to the Kolibri virtualenv
 - path to the Kolibri source code
 
 This can be accomplished either by using command line arguments:
@@ -139,6 +139,44 @@ or:
 Velox architecture allows running a [Scenario](Testing scenarios) against an existing running Kolibri instance, without launching one automatically. Any Kolibri installation accessible via network can be tested by configuring the url value in the scenario file.
 
 In this case, please be warned that there are important limitations due to the fact that Velox is unable to control the Kolibri instance and does not have access to some important information (e.g. the admin user credentials, list of users, etc.).
+
+To run it we need a list of users and the resources to be tested.
+
+1. Check the scenario file that's going to be used, and there:
+
+   a) Replace the admin section providing the users and resources
+```python
+   # admin = AdminUser(base_url=os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000'))
+# KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
+# KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
+KolibriUserBehavior.KOLIBRI_USERS = ['John', 'Amina']
+KolibriUserBehavior.KOLIBRI_RESOURCES = ['/api/contentnode/012c1c73c01b4af9b3265d952a09ceb5/ancestors/',
+                                         '/downloadcontent/d97c27b51ee7a26c60ddfd193ca36861.perseus/Mental_Math_to_Evaluate_Products_Practice_Exercise.perseus',
+                                         '/downloadcontent/211523265f53825b82f70ba19218a02e.mp4/Counting_with_small_numbers_Low_Resolution.mp4']
+```
+   b) Provide the url of the Kolibri server that's going to be tested:
+   ```python
+def run(learners=30):
+    launch(WebsiteUser, learners, run_time=120, url='http://kolibridemo.learningequality.org/')
+   ```
+
+2. Launch the tests from the same velox source directory, invoking the scenario file directly
+ ```bash
+   velox$ python scenarios/multiple_clients_multiple_resources.py
+ ```
+ IMPORTANT: Running Velox this way has obvious limitations: Users must be able to login without password and the network can have a deep impact in the results if this is done through Internet.
+
+However, this is useful to test a Kolibri server being in the same LAN, in this case, for testing purposes, creating an user with `admin` as username and password will allow a complete Velox execution, being unneeded the above instructions. The only needed step is running Velox doing:
+
+```bash
+   velox$ KOLIBRI_BASE_URL=http://192.168.1.33:8080 python scenarios/multiple_clients_multiple_resources.py
+```
+
+being in this example `http://192.168.1.33:8080` the url of the server to be tested.
+
+
+
+
 
 ------
 
