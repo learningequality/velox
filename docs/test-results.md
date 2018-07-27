@@ -15,12 +15,12 @@ After a successful test run, Velox will produce the results of the test in the `
 
 Results are Locust generated `.csv` files, named using the following template:
 
-```{year}_{month}_{day}__{hours}_{minutes}_{seconds}__{microseconds}_{scenario}_{csv type}```
+```{year}_{month}_{day}__{hours}_{minutes}_{seconds}__{microseconds}_{scenario}_{csv type}.csv```
 
-e.g.:
+e.g. result files generated for the `my_scenario.py` file would be:
 
-- ```2018_07_13__14_51_34__753905_foo_scenario_distribution.csv```
-- ```2018_07_13__14_51_34__753905_foo_scenario_requests.csv```
+- ```2018_07_13__14_51_34__753905_my_scenario_distribution.csv```
+- ```2018_07_13__14_51_34__753905_my_scenario_requests.csv```
 
 ## Distribution `.csv`
 
