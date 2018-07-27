@@ -147,7 +147,7 @@ def export_postgresql_dump(dump_path, opts, logger):
 def write_options_ini(template, dest, options, logger):
     """
     Render options.ini from a template file (located within the resources directory)
-    and write it to the specified destiation directory, using the passed `options`
+    and write it to the specified destination directory, using the passed `options`
     dictionary for the config options
     """
     tmpl_filename = 'options.{}.ini'.format(template)
@@ -296,7 +296,7 @@ def get_parse_args_definitions(wanted=None):
         ],
         'kolibri_exec': [
             '-ke', '--kolibri-exec', {
-                'required': False, 'help': 'command line to execute Kolibri cli'
+                'required': False, 'help': 'command to execute Kolibri cli'
             }
         ],
         'database': [
@@ -307,8 +307,8 @@ def get_parse_args_definitions(wanted=None):
         ],
         'channel': [
             '-c', '--channel', {
-                'required': False, 'choices': ['no', 'large', 'multiple', 'video', 'exercise'],
-                'help': 'Channels to use in Kolibri: no (no channel), large (1 large channel ~ 1Gb),\n'
+                'required': False, 'choices': ['large', 'multiple', 'video', 'exercise'],
+                'help': 'Channels to use in Kolibri: large (1 large channel ~ 1Gb),\n'
                         'multiple (10 x ~30 Mb channels), video (channel with multiple videos),\n'
                         'exercise (channel with multiple exercises)'
             }
