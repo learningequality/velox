@@ -1,21 +1,21 @@
 # Installation
-
 [Velox](../README.md) ⟶ [Detailed documentation](../README.md#detailed-documentation) ⟶ Installation
 
-
-## Install requirements
+## Prerequisites
 
 ### Kolibri (recommended)
-If a local Kolibri installation does not exist, many of the velox features can't be used. You can follow the [online developer documentation](http://kolibri-dev.readthedocs.io/en/develop/) to set up Kolibri development environment.
+You will need a local installation of Kolibri to use all of the Velox features. Follow the [online developer documentation](http://kolibri-dev.readthedocs.io/en/develop/) to set up Kolibri in development environment.
 
-Velox can work testing Kolibri servers available in the same network (or through Internet), with a set of limited features as explained in [Testing an external Kolibri server](./using-velox-externally.md). If that's the use case, Kolibri does not need to be installed.
+If you need Velox to test Kolibri servers running on the same network (or through Internet), there is a set of limited features explained in [Testing an external Kolibri server](./using-velox-externally.md), for which you do not need a local installation of Kolibri.
 
 ### PostgreSQL (optional)
-To be able to run tests with the PostgreSQL database backend, there are additional couple of steps to take.
+To be able to run tests with the PostgreSQL database backend, there are additional steps to take.
+
 #### Install PostgreSQL server
 Make sure that [PostgreSQL](https://www.postgresql.org/) server is installed on your system and listening on port `5432`.
+
 #### Install Kolibri PostgreSQL dependencies
-Install Kolibri PostgresSQL related package dependencies by running the following command within the **Kolibri installation directory** (repository) and using the **Kolibri virtualenv** (as this is a Kolibri, not Velox, package requirement):
+Install Kolibri PostgresSQL related package dependencies by running the following command within the **Kolibri installation directory** (repository), and using the **Kolibri virtualenv** (as this is a Kolibri, not Velox, package requirement):
 
 ```pip install -r requirements/postgres.txt```
 
