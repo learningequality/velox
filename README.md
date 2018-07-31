@@ -1,25 +1,22 @@
 # Velox
-
 Velox is a tool used to measure how [Kolibri](https://github.com/learningequality/kolibri) responds to stress testing.
 
 ## Goal
+Kolibri keeps evolving at a fast pace, and we need to be able to keep assessing its ability to serve as many clients as possible on a given hardware specifications.
 
-As Kolibri keeps evolving at a fast pace, a need arises to synchronously concentrate on the performance aspects of the tool i.e. its ability to serve as many clients as possible with respect to the underlying hardware specifications.
-
-Thus, the main goals of Velox tool are:
-- ability to set up reproducible tests to simulate various Kolibri use-case scenarios
-- ability to measure the performance of the scenarios
+The main goals of Velox tool are to allow us to:
+- set up reproducible tests to simulate various Kolibri use-case scenarios
+- measure the performance of Kolibri in those scenarios
 
 ## Overview
+With Velox we are able to:
+- automatically obtain Kolibri channels data necessary for the performance tests
+- simulate clients using Kolibri content by sending API requests via [Locust](https://github.com/locustio/locust) load testing library
+- execute fully configurable test scenarios written in Python
 
-Key points:
-- able to automatically prepare Kolibri channels data necessary for the performance tests
-- able to simulate clients using Kolibri content by sending API requests via [Locust](https://github.com/locustio/locust) load testing library
-- supports SQLite (Kolibri default) and PostgreSQL database backends
-- features fully configurable test scenarios written in Python
+Velox can work with both SQLite (Kolibri default) and PostgreSQL database backends
 
 ## Detailed documentation
-
 - [Installation](docs/installation.md)
 - [Configuration options](docs/configuration-options.md)
 - [Using Velox](docs/using-velox.md)
