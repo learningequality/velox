@@ -1,17 +1,13 @@
 # Virtual Machines
-
 [Velox](../README.md) ⟶ [Detailed documentation](../README.md#detailed-documentation) ⟶ [Advanced usage](../README.md#detailed-documentation) ⟶ Virtual machines
 
-
 ## Overview
+This document explains how to run Velox tests using the VirtualBox virtual machines.
 
-This document explains how to run Velox tests using the Virtualbox virtual machines.
-
-You would want to use virtual machines if the underlying hardware you're testing on is too powerful and you would like to limit the resources, or you would like to run the tests by limiting only a part of the computer's resources, e.g. limiting available RAM but not limiting the CPU, or vice-versa.
+It is recommended to use virtual machines if the underlying hardware you're testing on is too powerful and you need to limit the resources, or when you need to run the tests by limiting only a part of the computer's resources, e.g. limiting available RAM but not limiting the CPU, or vice-versa.
 
 ## Limiting resources
-
-As we're using [Vagrant](https://www.vagrantup.com) to provision the virtual machines, it's fairly easy to configure resources limitations by changing a few configuration options.
+When you use [Vagrant](https://www.vagrantup.com) to provision the virtual machines, it's fairly easy to configure resources limitations by changing a few configuration options.
 
 By default, resources limitations defined via the `Vagrantfile` are:
 
@@ -31,7 +27,7 @@ velox.vm.provider 'virtualbox' do |vb|
 end
 ```
 
-Read more about how to configure the VirtualBox-powered Vagrant virtual machines [here](https://www.vagrantup.com/docs/virtualbox/configuration.html).
+Read more about how to [configure the VirtualBox-powered Vagrant virtual machines](https://www.vagrantup.com/docs/virtualbox/configuration.html).
 
 ## Requirements
 
@@ -40,7 +36,6 @@ Read more about how to configure the VirtualBox-powered Vagrant virtual machines
 * [Ansible](https://www.ansible.com)
 
 ## Setup
-
 ###  Install required Ansible packages
 
 * `sudo ansible-galaxy install lborguetti.system-locale`
@@ -67,7 +62,7 @@ Start by `ssh`-ing to the VM:
 
 ```vagrant ssh```
 
-Your current working directory, where the Velox is installed, has been automatically mounted inside the VM, so all the changes you make on your host machine will be synced to the VM.
+Your current working directory (where the Velox is installed), has been automatically mounted inside the VM, so all the changes you make on your host machine will be synced to the VM.
 
 Once successfully connected to the VM, you can run:
 
@@ -87,9 +82,9 @@ NOTE: PostgreSQL database backend is currently not supported, so you will only b
 ## Known issues
 
 ### "unreachable: true", "Host key verification failed"
-This usually happens if you destroy and re-create vagrant machines (`vagrant destroy` and `vagrant up`) so you have to remove the ssh keys from the old VM.
+This usually happens if you destroy and re-create vagrant machines (`vagrant destroy` and `vagrant up`), so you have to remove the ssh keys from the old VM.
 
-The following command removes all keys belonging to the VM ip address from your `known_hosts` file:
+The following command removes all keys belonging to the VM IP address from your `known_hosts` file:
 
 * `ssh-keygen -f ~/.ssh/known_hosts -R 192.168.109.100`
 
@@ -97,16 +92,16 @@ You should be able to [provision the virtual machine](#provision-the-virtual-mac
 
 ### "unreachable=1", "Failed to connect to the host via ssh", "Connection timed out"
 
-This usually happens where you create multiple vagrant instances, the solution should be easy:
+This usually happens where you create multiple vagrant instances, run:
 * run `ssh-add -l`
 
-to list all identities and confirm that there are more than one identities for vagrant `velox` virtual machines.
+to list all identities and confirm that there is more than one identity for vagrant `velox` virtual machines.
 
-If this is the case, you can:
+If that is the case, you can:
 * run `ssh-add -D` to __remove all identities__ from the agent (__Do this only if you know what you're doing!__)
 * change the working directory to the one where your Velox code is (where `Vagrantfile` is located)
 * `ssh-add .vagrant/machines/velox/virtualbox/private_key` (re-add `velox` private key)
-* you probably want to run `ssh-add` as well to re-add your personal ssh identities
+* you probably want to run `ssh-add` as well, to re-add your personal ssh identities
 
 ------
 
