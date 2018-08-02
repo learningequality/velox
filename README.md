@@ -2,7 +2,7 @@
 Velox is a tool used to measure how [Kolibri](https://github.com/learningequality/kolibri) responds to stress testing.
 
 ## Goal
-Kolibri keeps evolving at a fast pace, and we need to be able to keep assessing its ability to serve as many clients as possible on a given hardware specifications.
+Kolibri keeps evolving at a fast pace, and we need to be able to keep assessing its ability to serve as many clients as possible on given hardware specifications.
 
 The main goals of Velox tool are to allow us to:
 - set up reproducible tests to simulate various Kolibri use-case scenarios
