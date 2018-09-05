@@ -74,8 +74,8 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run(learners=30):
-    launch(WebsiteUser, learners, run_time=120)
+def run(learners=4):
+    launch(WebsiteUser, learners, run_time=80)
 
 
 if __name__ == '__main__':

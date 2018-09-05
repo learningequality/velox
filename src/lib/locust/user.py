@@ -13,6 +13,13 @@ import time
 from datetime import datetime as dt
 from locust import TaskSet
 
+def get_pk( node):
+    # Old versions of Kolibri use 'id' instead of 'pk'
+    pk ='pk'
+    if 'pk' not in node:
+        pk = 'id'
+    return pk
+
 
 class AdminUser(object):
 
@@ -55,12 +62,15 @@ class AdminUser(object):
                 for u in json.loads(r.content) if u['roles'] == []]
 
     def get_content_resources(self, contents, kind):
-        resources = [{'content_id': content['id'],
-                      'channel_id': content['channel_id'],
-                      'assessment_item_ids': None if kind != 'exercise' else
-                      [content['assessment_item_ids'] for content in content['assessmentmetadata']],
-                      'files':[file['download_url']
-                               for file in content['files']]} for content in contents if content['kind'] == kind]
+        resources = []
+        if contents:
+            pk = get_pk(contents[0])
+            resources = [{'content_id': content[pk],
+                        'files':[file['download_url'] for file in content['files'] if 'files' in content.keys()],
+                        'channel_id': content['channel_id'],
+                        'assessment_item_ids': None if kind != 'exercise' else
+                        [content['assessment_item_ids'] for content in content['assessmentmetadata']]}
+                        for content in contents if content['kind'] == kind]
 
         return resources
 
@@ -166,8 +176,9 @@ class KolibriUserBehavior(TaskSet):
                 return
 
         # "click" on the node
-        self.get_content_node_ancestors(parent_node['id'])
-        child_nodes = self.get_content_nodes_by_parent(parent_node['id'])
+        pk = get_pk(parent_node)
+        self.get_content_node_ancestors(parent_node[pk])
+        child_nodes = self.get_content_nodes_by_parent(parent_node[pk])
         if not child_nodes:
             return
 
@@ -181,9 +192,9 @@ class KolibriUserBehavior(TaskSet):
 
         # fetch the full data for the "final" node and set `skip_node_endpoint` to True
         # when calling `do_resource` so that we don't fire that request for the 2nd time
-        final_node = self.get_content_node(child_node['id'])
+        final_node = self.get_content_node(child_node[pk])
 
-        resource = {'content_id': final_node['id'],
+        resource = {'content_id': final_node[pk],
                     'channel_id': final_node['channel_id'],
                     'assessment_item_ids': None,
                     'files': [file['download_url'] for file in final_node['files']]}
@@ -269,7 +280,8 @@ class KolibriUserBehavior(TaskSet):
             return False
 
         # create PATCH request to update the log
-        data['pk'] = json.loads(r.content)['pk']
+        pk = get_pk(json.loads(r.content))
+        data['pk'] = json.loads(r.content)[pk]
         log_url_patch = '{log_url}{log_id}/'.format(log_url=log_url, log_id=data['pk'])
         r = self.client.patch(log_url_patch, data=data, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
                               name='/api/contentsessionlog/{}'.format(self.current_user['username']))
@@ -309,14 +321,16 @@ class KolibriUserBehavior(TaskSet):
         contents = json.loads(r.content)
         if len(contents) > 0:
             # log exists, extract the log id from the GET response
-            log_id = contents[0]['pk']
+            pk = get_pk(contents[0])
+            log_id = contents[0][pk]
         else:
             # create summarylog if it doesn't exists yet
             r = self.client.post(log_url, data=data, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
                                  name='/api/contentsummarylog/{}'.format(self.current_user['username']))
             if not r.status_code == 201:
                 return False
-            log_id = json.loads(r.content)['pk']
+            pk = get_pk(r.content)
+            log_id = json.loads(r.content)[pk]
 
         # create PATCH request to update the log
         data['pk'] = log_id
