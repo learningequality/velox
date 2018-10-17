@@ -38,13 +38,13 @@ class AdminUser(object):
         csrf_token = r.cookies['csrftoken']
         session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
         session_id = r.cookies[session_identifier]
-
         cookie_header = '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
             session_identifier=session_identifier, session_id=session_id, csrf_token=csrf_token)
         headers = {'X-CSRFToken': csrf_token, 'Cookie': cookie_header}
 
         r = requests.post('{base_url}/api/session/'.format(base_url=self.base_url), data=data, headers=headers)
-
+        if r.status_code == 404: # Kolibri version > v0.11
+            r = requests.post('{base_url}/api/auth/session/'.format(base_url=self.base_url), data=data, headers=headers)
         # update headers with the new set of entries
         self.headers = {'X-CSRFToken': r.cookies['csrftoken'],
                         'Cookie': '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
@@ -55,8 +55,10 @@ class AdminUser(object):
         if not self.headers:
             self.login_admin()
         r = requests.get('{base_url}/api/facilityuser/'.format(base_url=self.base_url), headers=self.headers)
-        if r.status_code != 200:
-            return []
+        if r.status_code != 200:  # Kolibri version > v0.11
+            r = requests.get('{base_url}/api/auth/facilityuser/'.format(base_url=self.base_url), headers=self.headers)
+            if r.status_code != 200:
+                return []
 
         return [{'username': u['username'], 'id':u['id'], 'facility':u['facility']}
                 for u in json.loads(r.content) if u['roles'] == []]
@@ -105,7 +107,10 @@ class KolibriUserBehavior(TaskSet):
         self.headers = self.get_headers()
         self.current_user = None
         self.logs_ids = self.get_logs_ids_dict()
-
+        self.kolibri_new_version = False
+        self.url_auth_prefix = ""
+        self.url_logger_prefix = ""
+        self.url_content_prefix = "contentnode/"
         if KolibriUserBehavior.KOLIBRI_USERS:
             self.current_user = random.choice(KolibriUserBehavior.KOLIBRI_USERS)
             print('Current user: {}'.format(self.current_user['username']))
@@ -128,6 +133,13 @@ class KolibriUserBehavior(TaskSet):
 
         r = self.client.post('/api/session/', data=data, headers=headers,
                              timeout=KolibriUserBehavior.TIMEOUT)
+        if r.status_code == 404: # Kolibri version > v0.11
+                self.kolibri_new_version = True
+                self.url_auth_prefix = "auth/"
+                self.url_logger_prefix = "logger/"
+                self.url_content_prefix = "content/contentnode_slim/"
+                r = self.client.post('/api/{}session/'.format(self.url_auth_prefix), data=data, headers=headers,
+                            timeout=KolibriUserBehavior.TIMEOUT)
         # update headers with the new set of entries
         session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
         self.set_headers({'X-CSRFToken': r.cookies['csrftoken'],
@@ -139,7 +151,7 @@ class KolibriUserBehavior(TaskSet):
     def log_out(self, headers=None):
         if not headers:
             headers = self.headers
-        r = self.client.delete('/api/session/current/', headers=headers)
+        r = self.client.delete('/api/{}session/current/'.format(self.url_auth_prefix), headers=headers)
         return r.status_code == 200
 
     def get_headers(self):
@@ -193,11 +205,16 @@ class KolibriUserBehavior(TaskSet):
         # fetch the full data for the "final" node and set `skip_node_endpoint` to True
         # when calling `do_resource` so that we don't fire that request for the 2nd time
         final_node = self.get_content_node(child_node[pk])
-
-        resource = {'content_id': final_node[pk],
-                    'channel_id': final_node['channel_id'],
-                    'assessment_item_ids': None,
-                    'files': [file['download_url'] for file in final_node['files']]}
+        if self.kolibri_new_version:
+            resource = {'content_id': final_node[pk],
+                        'channel_id': final_node['channel_id'],
+                        'assessment_item_ids': None,
+                        'files': [file['storage_url'] for file in final_node['files']]}
+        else:
+            resource = {'content_id': final_node[pk],
+                        'channel_id': final_node['channel_id'],
+                        'assessment_item_ids': None,
+                        'files': [file['download_url'] for file in final_node['files']]}
         if kind == 'exercise' and 'assessmentmetadata' in final_node:
             assessment_item_ids = [assessment_item['assessment_item_ids']
                                    for assessment_item in final_node['assessmentmetadata']]
@@ -248,7 +265,8 @@ class KolibriUserBehavior(TaskSet):
 
     def fetch_resource_files(self, resource, kind):
         for file_url in resource['files']:
-            self.client.get(file_url, timeout=KolibriUserBehavior.TIMEOUT)
+            if file_url:
+                self.client.get(file_url, timeout=KolibriUserBehavior.TIMEOUT)
 
     def get_logs_ids_dict(self):
         return {
@@ -259,8 +277,7 @@ class KolibriUserBehavior(TaskSet):
         }
 
     def do_contentsessionlog(self, content_id, channel_id, kind):
-        log_url = '/api/contentsessionlog/'
-
+        log_url = '/api/{}contentsessionlog/'.format(self.url_logger_prefix)
         # create POST request to get the log id
         timestamp = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         data = {
@@ -274,8 +291,9 @@ class KolibriUserBehavior(TaskSet):
             'time_spent': 0,
             'user': self.current_user['id']
         }
+        contentsessionlog_url = '/api/{}contentsessionlog/'.format(self.url_logger_prefix)
         r = self.client.post(log_url, data=data, headers=self.headers,
-                             timeout=KolibriUserBehavior.TIMEOUT, name='/api/contentsessionlog/')
+                             timeout=KolibriUserBehavior.TIMEOUT, name=contentsessionlog_url)
         if not r.status_code == 201:
             return False
 
@@ -284,7 +302,7 @@ class KolibriUserBehavior(TaskSet):
         data['pk'] = json.loads(r.content)[pk]
         log_url_patch = '{log_url}{log_id}/'.format(log_url=log_url, log_id=data['pk'])
         r = self.client.patch(log_url_patch, data=data, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
-                              name='/api/contentsessionlog/{}'.format(self.current_user['username']))
+                              name='{}{}'.format(contentsessionlog_url, self.current_user['username']))
 
         # set log id for other log methods to use if necessary
         self.logs_ids['contentsessionlog_id'] = data['pk']
@@ -292,7 +310,7 @@ class KolibriUserBehavior(TaskSet):
         return r.status_code == 200
 
     def do_contentsummarylog(self, content_id, channel_id, kind):
-        log_url = '/api/contentsummarylog/'
+        log_url = '/api/{}contentsummarylog/'.format(self.url_logger_prefix)
 
         # set general data object (for PATCH and optionally POST requests)
         timestamp = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
@@ -314,7 +332,7 @@ class KolibriUserBehavior(TaskSet):
         log_url_get = '{log_url}?content_id={content_id}&user_id={user_id}'.format(
             log_url=log_url, content_id=content_id, user_id=self.current_user['id'])
         r = self.client.get(log_url_get, timeout=KolibriUserBehavior.TIMEOUT,
-                            name='/api/contentsummarylog/{}'.format(self.current_user['username']))
+                            name='{}{}'.format(log_url, self.current_user['username']))
         if not r.status_code == 200:
             return False
 
@@ -326,7 +344,7 @@ class KolibriUserBehavior(TaskSet):
         else:
             # create summarylog if it doesn't exists yet
             r = self.client.post(log_url, data=data, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
-                                 name='/api/contentsummarylog/{}'.format(self.current_user['username']))
+                                 name='{}{}'.format(log_url, self.current_user['username']))
             if not r.status_code == 201:
                 return False
             pk = get_pk(r.content)
@@ -336,7 +354,7 @@ class KolibriUserBehavior(TaskSet):
         data['pk'] = log_id
         log_url_patch = '{log_url}{log_id}/'.format(log_url=log_url, log_id=log_id)
         r = self.client.patch(log_url_patch, data=data, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
-                              name='/api/contentsummarylog/{}'.format(self.current_user['username']))
+                              name='{}{}'.format(log_url, self.current_user['username']))
 
         # set log id for other log methods to use if necessary
         self.logs_ids['contentsummarylog_id'] = log_id
@@ -344,8 +362,7 @@ class KolibriUserBehavior(TaskSet):
         return r.status_code == 200
 
     def do_masterylog(self, content_id, channel_id, kind):
-        log_url = '/api/masterylog/'
-
+        log_url = '/api/{}masterylog/'.format(self.url_logger_prefix)
         timestamp = dt.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         data = {
             'user': self.current_user['id'],
@@ -361,7 +378,7 @@ class KolibriUserBehavior(TaskSet):
             'mastery_criterion': '{}'
         }
         r = self.client.post(log_url, data=data, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
-                             name='/api/masterylog/{}'.format(self.current_user['username']))
+                             name='{}{}'.format(log_url, self.current_user['username']))
 
         if not r.status_code == 201:
             return False
@@ -480,9 +497,9 @@ class KolibriUserBehavior(TaskSet):
         return payload
 
     def do_userprogress(self):
-        log_url = '/api/userprogress/{user_id}/'.format(user_id=self.current_user['id'])
+        log_url = '/api/{prefix}userprogress/{user_id}/'.format(prefix=self.url_logger_prefix, user_id=self.current_user['id'])
         r = self.client.get(log_url, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT,
-                            name='/api/userprogress/{}'.format(self.current_user['username']))
+                            name='/api/{}userprogress/{}'.format(self.url_logger_prefix, self.current_user['username']))
         return r.status_code == 200
 
     def do_usersessionlog(self):
@@ -490,7 +507,7 @@ class KolibriUserBehavior(TaskSet):
         Initiate a GET request on the session API endpoint with a `active=true` param, which in turns
         triggers the update of the usersessionlog entry via Kolibri Django signals
         """
-        log_url = '/api/session/current/?active=true'
+        log_url = '/api/{}session/current/?active=true'.format(self.url_auth_prefix)
         r = self.client.get(log_url, headers=self.headers, timeout=KolibriUserBehavior.TIMEOUT)
         return r.status_code == 200
 
@@ -501,26 +518,37 @@ class KolibriUserBehavior(TaskSet):
         return json.loads(r.content)
 
     def get_facility(self):
-        return self.get_with_headers('/api/facility/')
+        facility = self.get_with_headers('/api/{}facility/'.format(self.url_auth_prefix))
+
+        return facility
 
     def get_available_channels(self):
-        return self.get_with_headers('/api/channel/?available=true')
+        if self.kolibri_new_version:
+            available_channels = self.get_with_headers('/api/content/channel/?available=true')
+        else:
+            available_channels = self.get_with_headers('/api/channel/?available=true')
+        return available_channels
+
 
     def get_content_node(self, content_node_id):
-        url = '/api/contentnode/?ids={content_node_id}&by_role=true'.format(content_node_id=content_node_id)
+        url = '/api/{prefix}?ids={content_node_id}&by_role=true'.format(prefix=self.url_content_prefix,content_node_id=content_node_id)
         try:
-            return self.get_with_headers(url)[0]
+            node = self.get_with_headers(url)
+            return node[0]
         except TypeError:
             return None
 
     def get_content_node_ancestors(self, content_node_id):
-        url = '/api/contentnode/{content_node_id}/ancestors/'.format(content_node_id=content_node_id)
+        url = '/api/{prefix}{content_node_id}/ancestors/'.format(prefix=self.url_content_prefix, content_node_id=content_node_id)
         return self.get_with_headers(url)
 
     def get_content_nodes_by_parent(self, content_node_id):
-        url = '/api/contentnode/?parent={content_node_id}&by_role=true'.format(content_node_id=content_node_id)
+        url = '/api/{prefix}?parent={content_node_id}&by_role=true'.format(prefix=self.url_content_prefix, content_node_id=content_node_id)
         return self.get_with_headers(url)
 
     def get_next_content_node(self, content_node_id):
-        url = '/api/contentnode/{content_node_id}/next_content/'.format(content_node_id=content_node_id)
+        if self.kolibri_new_version:
+            url = '/api/content/contentnode/{content_node_id}/next_content/'.format(content_node_id=content_node_id)
+        else:
+            url = '/api/contentnode/{content_node_id}/next_content/'.format(content_node_id=content_node_id)
         return self.get_with_headers(url)
