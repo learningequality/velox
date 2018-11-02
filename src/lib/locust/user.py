@@ -29,6 +29,8 @@ class AdminUser(object):
     def __init__(self, base_url):
         self.base_url = base_url
         self.headers = None
+        self.download_url = 'storage_url'
+
 
     def login_admin(self):
         data = {'username': AdminUser.USERNAME, 'password': AdminUser.PASSWORD}
@@ -67,32 +69,40 @@ class AdminUser(object):
         resources = []
         if contents:
             pk = get_pk(contents[0])
-            resources = [{'content_id': content[pk],
-                        'files':[file['download_url'] for file in content['files'] if 'files' in content.keys()],
-                        'channel_id': content['channel_id'],
-                        'assessment_item_ids': None if kind != 'exercise' else
-                        [content['assessment_item_ids'] for content in content['assessmentmetadata']]}
-                        for content in contents if content['kind'] == kind]
-
+            try:
+                resources = [{'content_id': content[pk],
+                            'files':[file[self.download_url] for file in content['files'] if 'files' in content.keys()],
+                            'channel_id': content['channel_id'],
+                            'assessment_item_ids': None if kind != 'exercise' else
+                            [content['assessment_item_ids'] for content in content['assessmentmetadata']]}
+                            for content in contents if content['kind'] == kind]
+            except KeyError:
+                #  old api format
+                self.download_url = 'download_url'
         return resources
 
     def get_resources(self):
         resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
         if not self.headers:
             self.login_admin()
-        r = requests.get('{base_url}/api/contentnode/?popular=true'.format(base_url=self.base_url),
+        # get available channels:
+        r = requests.get('{base_url}/api/contentnode/all_content/'.format(base_url=self.base_url),
                          headers=self.headers)
+        if r.status_code == 404:
+            r = requests.get('{base_url}/api/content/contentnode_slim/'.format(base_url=self.base_url),
+                            headers=self.headers)
         if r.status_code != 200:
             return resources
-        try:
-            contents = json.loads(r.content)
-            for kind in resources.keys():
-                resources[kind] = self.get_content_resources(contents, kind)
-        except ValueError:
-            #  bad response from the server
-            pass
-        finally:
-            return resources
+        else:
+            try:
+                contents = json.loads(r.content)
+                for kind in resources.keys():
+                    resources[kind] = resources[kind] + self.get_content_resources(contents, kind)
+            except ValueError:
+                #  bad response from the server
+                pass
+            finally:
+                return resources
 
 
 class KolibriUserBehavior(TaskSet):
@@ -264,9 +274,15 @@ class KolibriUserBehavior(TaskSet):
             self.do_attemptlog(resource)
 
     def fetch_resource_files(self, resource, kind):
-        for file_url in resource['files']:
-            if file_url:
-                self.client.get(file_url, timeout=KolibriUserBehavior.TIMEOUT)
+        if kind == 'exercise':
+            exercise_base = resource['files'][0]
+            for assessment_item_id in resource['assessment_item_ids'][0]:
+                self.client.get("{base}{assessment}.json".format(base=exercise_base, assessment=assessment_item_id),
+                                timeout=KolibriUserBehavior.TIMEOUT)
+        else:
+            for file_url in resource['files']:
+                if file_url:
+                    self.client.get(file_url, timeout=KolibriUserBehavior.TIMEOUT)
 
     def get_logs_ids_dict(self):
         return {
