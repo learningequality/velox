@@ -117,7 +117,7 @@ def launch(classname, n_clients, run_time=180):
         if '127.0.0.1' in base_url or 'localhost' in base_url:
             time.sleep(1)
         else:
-            time.sleep(1)
+            time.sleep(5)
     runners.locust_runner = MasterLocustRunner([classname], options)
     while len(runners.locust_runner.clients.ready) < options.expect_slaves:
         time.sleep(1)
