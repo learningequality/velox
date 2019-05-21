@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 Performance testing launcher script.
+
+Scenarios creation from  har files:
+    transformer -p plugins.kolibri har/ >scenarios/test.py
+
 Execution examples:
 Using a pex file:
     python src/velox.py -c video -ke /datos/le/kolibri-v0.9.1.pex -l 30
@@ -14,6 +18,8 @@ From development environment:
     python src/velox.py -c exercise -kv /datos/le/kolibri/venv/  -kd /datos/le/kolibri -l 10 -s 2 -d postgresql
     to use postgresql database
 
+    velox --replay -l 10 -s 2 -t example --server=http://127.0.0.1:8080
+
 IMPORTANT NOTES:
     * Tests are fetched from the scenarios directory.
     * Tests need to have a 'run' function that will be executed to run the test.
@@ -21,33 +27,27 @@ IMPORTANT NOTES:
     * Every test is run three times and the execution times are logged at the end of the process.
 
 """
-from __future__ import absolute_import, print_function, unicode_literals
-
 # Next two lines are needed to workaround the problem caused by the
 # combination of requests bug #3831 with urllib3 bug #1104
 import gevent.monkey
 gevent.monkey.patch_all()  # noqa
 
 import os
-import requests
-import shutil
-import subprocess
 import sys
 import tempfile
-import time
 
 from datetime import datetime
 from filelock import FileLock
 from importlib import import_module
 
-from bootstrap import bootstrap_database
-from requests.exceptions import RequestException
 from utils import calculate_duration
 from utils import enable_log_to_stdout, get_free_tcp_port
-from utils import (set_kolibri_home, get_config_opts, manage_cli, select_cli, write_options_ini,
-                   import_postgresql_dump)
+from utils import get_config_opts
+
 from utils import show_error
 
+if sys.version_info < (3, 5):
+    raise Exception('Python >= 3.5 is needed to run velox')
 
 class EnvironmentSetup(object):
 
@@ -71,99 +71,7 @@ class EnvironmentSetup(object):
         self.port = get_free_tcp_port()
         self.base_url = 'http://127.0.0.1:{}'.format(self.port)
         self._instance = None
-
-    def __set_database(self):
-        """
-        Uses the bootstraped data and database to setup a new
-        Kolibri working environment
-        """
-        channel_dir = os.path.join('data', self.opts.channel)
-        bootstrap_database(self.opts, self.logger)
-        self.logger.info('Copying bootstrapped data from {} to {}'.format(channel_dir, self.working_dir))
-        shutil.copytree(channel_dir, self.working_dir)
         self.__inject_options_ini()
-        set_kolibri_home(self.working_dir, self.logger)
-        if opts.database == 'postgresql':
-            self.__import_dump()
-
-    def __import_dump(self):
-        dump_path = os.path.join(self.working_dir, '{}.sql'.format(self.opts.channel))
-        return import_postgresql_dump(dump_path, self.opts, self.logger)
-
-    def __inject_options_ini(self):
-        """
-        Renders and injects options.ini configuration file into the current working directory
-        """
-        options = vars(self.opts)
-        options.update({'content_dir': self.working_dir})
-        return write_options_ini(self.opts.database, self.working_dir, options, self.logger)
-
-    def do_setup(self):
-        """
-        Prepare all the envirnoment to be able to run Kolibri and tests
-        """
-        self.__set_database()
-
-    def do_clean(self, error_exit=False):
-        """ Finishes Kolibri server and deletes all the temp files used
-        to create the running environment
-        """
-        if self._instance:
-            self._instance.kill()
-        self.logger.info('Kolibri server has been stopped')
-        try:
-            shutil.rmtree(os.path.split(self.working_dir)[0])
-            self.logger.info('Temp working directory has been deleted')
-        except IOError:
-            self.logger.error('Error trying to remove the working directory')
-        except OSError:
-            pass
-        if error_exit:
-            sys.exit(1)
-
-    def manage(self, *args):
-        """
-        Handler to run kolibri manage to invoke a Django command
-        """
-        call_args = manage_cli(self.opts, *args)
-        try:
-            subprocess.Popen(call_args).wait()
-        except Exception as error:
-            show_error(self.logger, error)
-
-    def start(self):
-        """
-        Starts Kolibri web server
-        """
-        try:
-            kolibri_commands = select_cli(self.opts) + ['start', '--port={}'.format(self.port), '--foreground']
-            if opts.kolibri_dev:
-                self.logger.warn('Running kolibri from dev environment. Ensure you have run `yarn build` before')
-            self._instance = subprocess.Popen(kolibri_commands)
-            self._wait_for_server_start()
-
-            self.logger.info('Kolibri server started and running in port {}'.format(self.port))
-            return True
-        except OSError:
-            self.logger.error('Kolibri not found. Tests can\'t continue')
-        except Exception:
-            self.logger.error('Kolibri server did not start')
-        return False
-
-    def _wait_for_server_start(self, timeout=20):
-        """
-        Pauses this script until the web server is serving requests
-        """
-        for _ in range(timeout * 2):
-            try:
-                resp = requests.get(self.base_url, timeout=3)
-                if resp.status_code > 0:
-                    return
-            except RequestException:
-                pass
-            time.sleep(0.5)
-
-        raise Exception('Server did not start within {} seconds'.format(timeout))
 
     def load_tests(self):
         """
@@ -197,8 +105,7 @@ class EnvironmentSetup(object):
 
 if __name__ == '__main__':
     start_date = datetime.utcnow()
-    wanted_args = ['kolibri_dev', 'kolibri_venv', 'kolibri_exec', 'database', 'channel',
-                   'iterations', 'learners', 'classrooms', 'test']
+    wanted_args = ['users', 'iterations', 'learners', 'test']
     opts = get_config_opts(wanted=wanted_args, description='Velox setup script')
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)
@@ -209,9 +116,6 @@ if __name__ == '__main__':
         try:
             logger.info('Tests setup script started')
             es = EnvironmentSetup(opts, logger)
-            es.do_setup()
-            if not es.start():
-                es.do_clean(True)
             os.environ['KOLIBRI_BASE_URL'] = es.base_url
             for test in es.load_tests():
                 # Each test is done three times
@@ -225,12 +129,9 @@ if __name__ == '__main__':
                         test.run(opts.learners)
                     except AttributeError:
                         logger.error('{} is not a correct module to run tests'.format(test.__name__))
-                        # Clean temp files and quit velox:
-                        es.do_clean(True)
                     except Exception as error:
                         show_error(logger, error, 'when trying to run {}'.format(test.__name__))
                     tests_durations[test.__name__].append(calculate_duration(test_start))
-            es.do_clean()
             duration = calculate_duration(start_date)
             logger.info('::Duration {}'.format(duration))
             logger.info('Tests finished')

@@ -2,26 +2,23 @@
 """
 Common function used by different parts of the application
 """
-from __future__ import print_function, unicode_literals
 
 import argparse
 import logging
-import os
 import socket
-import subprocess
 import sys
 import time
+import typing
 import traceback
 
 from datetime import datetime
-from string import Template
+from pathlib import Path
 
-__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts', 'get_free_tcp_port', 'manage_cli',
-           'set_kolibri_home', 'select_cli', 'show_error', 'import_postgresql_dump', 'export_postgresql_dump',
-           'write_options_ini', 'add_timestamp']
+if sys.version_info < (3, 5):
+    raise Exception('Python >= 3.5 is needed to use this utils module')
 
-if sys.version_info < (3,):
-    FileNotFoundError = IOError
+__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts',
+           'get_free_tcp_port', 'show_error', 'add_timestamp']
 
 
 def enable_log_to_stdout(logname):
@@ -37,44 +34,6 @@ def enable_log_to_stdout(logname):
     return log
 
 
-def set_kolibri_home(path, logger):
-    """
-    Set the KOLIBRI_HOME environment variable:
-      - if the directory value has been passed as an argument, use that
-      - set the default value to be the one defined as per the Kolibri code
-    """
-    kolibri_home = path if path else os.path.join(os.path.expanduser('~'), '.kolibri')
-    logger.info('Setting the KOLIBRI_HOME env to {}'.format(kolibri_home))
-    os.environ['KOLIBRI_HOME'] = kolibri_home
-
-
-def get_kolibri_home():
-    """
-    Return KOLIBRI_HOME environment variable
-    """
-    return os.environ.get('KOLIBRI_HOME')
-
-
-def get_kolibri_module(opts):
-    """
-    Return the path to the kolibri module within the Kolibri developmnent installation directory
-    i.e. [kolibri_dev]/kolibri
-    """
-    if not opts.kolibri_dev:
-        raise ValueError('kolibri-dev argument is missing')
-    return os.path.join(opts.kolibri_dev, 'kolibri')
-
-
-def get_kolibri_venv_python(opts):
-    """
-    Return the path to the python executable within the Kolibri virtualenv
-    i.e. [kolibri_venv]/bin/python
-    """
-    if not opts.kolibri_venv:
-        raise ValueError('kolibri-venv argument is missing')
-    return os.path.join(opts.kolibri_venv, 'bin', 'python')
-
-
 def get_free_tcp_port():
     """
     Find a free tcp port to run Kolibri server
@@ -84,87 +43,6 @@ def get_free_tcp_port():
     _, port = tcp.getsockname()
     tcp.close()
     return port
-
-
-def select_cli(opts):
-    """
-    Returns the right way to call kolibri execution,
-    depending on the provided opts
-    """
-    if opts.kolibri_exec:
-        commands = [opts.kolibri_exec, ]
-    elif opts.kolibri_dev:
-        python_exec = get_kolibri_venv_python(opts)
-        kolibri_module = get_kolibri_module(opts)
-        commands = [python_exec, kolibri_module]
-    else:
-        commands = ['kolibri', ]
-    return commands
-
-
-def manage_cli(opts, *args):
-    """
-    Returns the right way to execute kolibri manage commands,
-    depending on the provided opts
-    """
-    commands = select_cli(opts)
-
-    return commands + ['manage', ] + list(args)
-
-
-def import_postgresql_dump(dump_path, opts, logger):
-    try:
-        insert_cmd = ['psql',
-                      '-h', opts.db_postgresql_host,
-                      '-U', opts.db_postgresql_user,
-                      '-d', opts.db_postgresql_name,
-                      '-f', dump_path]
-        subprocess.Popen(insert_cmd, env={'PGPASSWORD': opts.db_postgresql_password}).wait()
-        logger.info('Postgres database dump imported from: {}'.format(dump_path))
-        return True
-    except Exception:
-        logger.error('Error trying to dump Postgres database')
-        return False
-
-
-def export_postgresql_dump(dump_path, opts, logger):
-    dump_cmd = ['pg_dump',
-                '-U', opts.db_postgresql_user,
-                '-h', opts.db_postgresql_host,
-                opts.db_postgresql_name,
-                '--clean',
-                '-f', dump_path]
-    subprocess.Popen(dump_cmd, env={'PGPASSWORD': opts.db_postgresql_password}).wait()
-
-    if not os.path.exists(dump_path):
-        logger.error('Error trying to dump Postgres database')
-        return False
-
-    logger.info('Postgres database dump exported to: {}'.format(dump_path))
-    return True
-
-
-def write_options_ini(template, dest, options, logger):
-    """
-    Render options.ini from a template file (located within the resources directory)
-    and write it to the specified destination directory, using the passed `options`
-    dictionary for the config options
-    """
-    tmpl_filename = 'options.{}.ini'.format(template)
-    logger.info('Using {} as options.ini template'.format(tmpl_filename))
-    tmpl_path = open(os.path.join('resources', tmpl_filename))
-    tmpl = Template(tmpl_path.read())
-
-    dest_path = os.path.join(dest, 'options.ini')
-    with open(dest_path, 'w') as ini:
-        ini.write(tmpl.substitute(options))
-
-    if not os.path.exists(dest_path):
-        logger.error('Error trying to write options.ini')
-        return False
-
-    logger.info('options.ini was rendered and written to: {}'.format(dest_path))
-    return True
 
 
 def calculate_duration(start):
@@ -238,19 +116,9 @@ def get_config_opts(wanted, **kwargs):
 
 def get_default_args():
     return {
-        'kolibri_dev': '',
-        'kolibri_venv': os.path.join(os.path.expanduser('~'), os.path.join('.venvs', 'kolibri')),
-        'kolibri_exec': '',
-        'database': 'sqlite',
         'channel': 'multiple',
         'learners': 30,
-        'classrooms': 1,
-        'test': 'all',
         'iterations': 3,
-        'db_postgresql_name': '',
-        'db_postgresql_user': '',
-        'db_postgresql_password': '',
-        'db_postgresql_host': '127.0.0.1'
     }
 
 
@@ -277,6 +145,12 @@ def fill_parse_args(wanted, **kwargs):
     return parser.parse_args()
 
 
+def is_valid_file(arg: str) -> typing.TextIO:
+    if not Path(arg).exists():
+        raise Exception("The file %s does not exist!" % arg)
+    else:
+        return open(arg, 'r')  # return an open file handle
+
 def get_parse_args_definitions(wanted=None):
     """
     Parse the args the script neeeds
@@ -284,27 +158,6 @@ def get_parse_args_definitions(wanted=None):
     :returns: A list with the options for the wanted args
     """
     definitions = {
-        'kolibri_dev': [
-            '-kd', '--kolibri-dev', {
-                'required': False, 'help': 'path to the Kolibri development installation'
-            },
-        ],
-        'kolibri_venv': [
-            '-kv', '--kolibri-venv', {
-                'required': False, 'help': 'path to the Kolibri virtualenv'
-            }
-        ],
-        'kolibri_exec': [
-            '-ke', '--kolibri-exec', {
-                'required': False, 'help': 'command to execute Kolibri cli'
-            }
-        ],
-        'database': [
-            '-d', '--database', {
-                'required': False, 'choices': ['sqlite', 'postgresql'],
-                'help': 'Database type: sqlite or posgresql'
-            }
-        ],
         'channel': [
             '-c', '--channel', {
                 'required': False, 'choices': ['large', 'multiple', 'video', 'exercise'],
@@ -315,12 +168,7 @@ def get_parse_args_definitions(wanted=None):
         ],
         'learners': [
             '-l', '--learners', {
-                'required': False, 'type': int, 'help': 'Number of learners per classroom that will use the tests'
-            }
-        ],
-        'classrooms': [
-            '-s', '--classrooms', {
-                'required': False, 'type': int, 'help': 'Number of classrooms to be created.'
+                'required': False, 'type': int, 'help': 'Number of concurrent learners that will be tested'
             }
         ],
         'test': [
@@ -331,6 +179,13 @@ def get_parse_args_definitions(wanted=None):
         'iterations': [
             '-i', '--iterations', {
                 'required': False, 'type': int, 'help': 'Number of times each test will be run'
+            }
+        ],
+        'users': [
+            '-u', '--users', {
+                'required': False,
+                'type': lambda x: is_valid_file(x),
+                'help': 'File with user credentials, either username or username and password'
             }
         ]
     }

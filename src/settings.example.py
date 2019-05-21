@@ -1,20 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 config = {
-    'kolibri_dev': '',
-    'kolibri_venv': '',
-    'kolibri_exec': '',
-    'database': '',
-    'channel': '',
-    'learners': 0,
-    'classrooms': 0,
+    'learners': 45,
     'test': '',
-    'iterations': 0,
-    'db_postgresql_name': '',
-    'db_postgresql_user': '',
-    'db_postgresql_password': '',
-    'db_postgresql_host': '',
+    'users': '',
+    'iterations': 1,
     'channel_mappings': {
         'no': [],
         'large': [
