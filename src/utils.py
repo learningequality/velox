@@ -79,47 +79,20 @@ def get_config_opts(wanted, **kwargs):
 
     # Get command line arguments with the argparse module
     opts = fill_parse_args(wanted, **kwargs)
-    args_definitions = get_parse_args_definitions()
-
     # We assume that all the options are listed in the `get_default_args` function
-    for opt_key, default_value in get_default_args().items():
-        # Command line arguments have the highest priority
-        if opt_key not in opts or not getattr(opts, opt_key, None):
-            # Try to get options from the config
+    for opt_key in wanted:
+        if not getattr(opts, opt_key, None):
             if config:
                 try:
                     setattr(opts, opt_key, config[opt_key])
                 except KeyError:
                     pass
 
-            # If opt is still not set, assign default value
+            # If opt is still not set, raise error
             if not getattr(opts, opt_key, None):
-                setattr(opts, opt_key, default_value)
-
-        # Verify values against args_definitions choices
-        if opt_key in args_definitions:
-            try:
-                # Here we're assuming the position of the args configuration dict
-                args_conf = args_definitions[opt_key][2]
-            except KeyError:
-                # And try one more time if the short arg format was not used
-                args_conf = args_definitions[opt_key][1]
-            except Exception:
-                args_conf = None
-
-            if args_conf and 'choices' in args_conf and getattr(opts, opt_key) not in args_conf['choices']:
-                raise ValueError('{} is expected to be one of [{}]'.format(
-                    opt_key, ', '.join(args_conf['choices'])))
+                raise Exception("Velox setup script: error: the following argument is required: {}".format(opt_key))
 
     return opts
-
-
-def get_default_args():
-    return {
-        'channel': 'multiple',
-        'learners': 30,
-        'iterations': 3,
-    }
 
 
 def fill_parse_args(wanted, **kwargs):
@@ -134,7 +107,6 @@ def fill_parse_args(wanted, **kwargs):
 
     parser = argparse.ArgumentParser(description)
     args_definitions = get_parse_args_definitions(wanted)
-
     for _, arg_definition in args_definitions.items():
         try:
             arg_short, arg_long, arg_opts = arg_definition
@@ -163,12 +135,13 @@ def get_parse_args_definitions(wanted=None):
                 'required': False, 'choices': ['large', 'multiple', 'video', 'exercise'],
                 'help': 'Channels to use in Kolibri: large (1 large channel ~ 1Gb),\n'
                         'multiple (10 x ~30 Mb channels), video (channel with multiple videos),\n'
-                        'exercise (channel with multiple exercises)'
+                        'exercise (channel with multiple exercises)',
+                'default': 'exercise'
             }
         ],
         'learners': [
             '-l', '--learners', {
-                'required': False, 'type': int, 'help': 'Number of concurrent learners that will be tested'
+                'required': False, 'default':10, 'type': int, 'help': 'Number of concurrent learners that will be tested'
             }
         ],
         'test': [
@@ -176,8 +149,14 @@ def get_parse_args_definitions(wanted=None):
                 'required': False, 'help': 'Name of the test to be run (or "all" to run them all)'
             }
         ],
+        'server': [
+            '-s', '--server', {
+                'required': False, 'type':str, 'help': 'Url of the server to be tested'
+            }
+        ],
         'iterations': [
             '-i', '--iterations', {
+                'default': 3,
                 'required': False, 'type': int, 'help': 'Number of times each test will be run'
             }
         ],
@@ -189,7 +168,6 @@ def get_parse_args_definitions(wanted=None):
             }
         ]
     }
-
     if wanted:
         return dict((k, definitions[k]) for k in wanted if k in definitions)
 

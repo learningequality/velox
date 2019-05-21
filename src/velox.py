@@ -39,7 +39,7 @@ import tempfile
 from datetime import datetime
 from filelock import FileLock
 from importlib import import_module
-
+from pathlib import Path
 from utils import calculate_duration
 from utils import enable_log_to_stdout, get_free_tcp_port
 from utils import get_config_opts
@@ -67,11 +67,9 @@ class EnvironmentSetup(object):
         self.logger = logger
         temp_dir = tempfile.mkdtemp()
         self.logger.info('Created temp working directory: {}'.format(temp_dir))
-        self.working_dir = os.path.join(temp_dir, 'kolibri')
         self.port = get_free_tcp_port()
         self.base_url = 'http://127.0.0.1:{}'.format(self.port)
         self._instance = None
-        self.__inject_options_ini()
 
     def load_tests(self):
         """
@@ -92,7 +90,6 @@ class EnvironmentSetup(object):
         if self.opts.test != 'all':
             yield load_test(self.opts.test)
         else:
-            # plugins_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plugins')
             scenarios_tests_path = 'scenarios'
             entries = os.listdir(scenarios_tests_path)
             blacklisted = ['__init__.py', 'example.py']
@@ -105,13 +102,13 @@ class EnvironmentSetup(object):
 
 if __name__ == '__main__':
     start_date = datetime.utcnow()
-    wanted_args = ['users', 'iterations', 'learners', 'test']
+    wanted_args = ['users', 'iterations', 'learners', 'test', 'server']
     opts = get_config_opts(wanted=wanted_args, description='Velox setup script')
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)
     tests_durations = {}
     # add scenarios directory to the sys path:
-    sys.path.append(os.path.join(os.getcwd(), 'scenarios'))
+    sys.path.append(str(Path.cwd().joinpath('scenarios')))
     with FileLock('{}.lock'.format(log_name)):
         try:
             logger.info('Tests setup script started')
