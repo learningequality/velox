@@ -114,7 +114,10 @@ def launch(classname, n_clients, run_time=180):
     slave_args = [locust_executable, '--slave', '-f', test_path]
     for slave in range(n_clients):
         subprocess.Popen(slave_args, env={'KOLIBRI_BASE_URL': base_url})
-        time.sleep(1)
+        if '127.0.0.1' in base_url or 'localhost' in base_url:
+            time.sleep(1)
+        else:
+            time.sleep(1)
     runners.locust_runner = MasterLocustRunner([classname], options)
     while len(runners.locust_runner.clients.ready) < options.expect_slaves:
         time.sleep(1)

@@ -16,7 +16,7 @@ from locust import TaskSet
 def get_pk( node):
     # Old versions of Kolibri use 'id' instead of 'pk'
     pk ='pk'
-    if 'pk' not in node:
+    if b'pk' not in node:
         pk = 'id'
     return pk
 
@@ -29,15 +29,17 @@ class AdminUser(object):
     def __init__(self, base_url):
         self.base_url = base_url
         self.headers = None
+        self.download_url = 'storage_url'
+
 
     def login_admin(self):
         data = {'username': AdminUser.USERNAME, 'password': AdminUser.PASSWORD}
 
-        # users with coach or admin role need password to login:
         r = requests.get('{base_url}/user/'.format(base_url=self.base_url))
-        csrf_token = r.cookies['csrftoken']
         session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
-        session_id = r.cookies[session_identifier]
+        r = requests.get('{base_url}/api/auth/session/current/?active=false'.format(base_url=self.base_url))
+        csrf_token = '' if 'csrftoken' in r.cookies else r.cookies['csrftoken']
+        session_id = r.cookies['csrftoken']
         cookie_header = '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
             session_identifier=session_identifier, session_id=session_id, csrf_token=csrf_token)
         headers = {'X-CSRFToken': csrf_token, 'Cookie': cookie_header}
@@ -67,32 +69,40 @@ class AdminUser(object):
         resources = []
         if contents:
             pk = get_pk(contents[0])
-            resources = [{'content_id': content[pk],
-                        'files':[file['download_url'] for file in content['files'] if 'files' in content.keys()],
-                        'channel_id': content['channel_id'],
-                        'assessment_item_ids': None if kind != 'exercise' else
-                        [content['assessment_item_ids'] for content in content['assessmentmetadata']]}
-                        for content in contents if content['kind'] == kind]
-
+            try:
+                resources = [{'content_id': content[pk],
+                            'files':[file[self.download_url] for file in content['files'] if 'files' in content.keys()],
+                            'channel_id': content['channel_id'],
+                            'assessment_item_ids': None if kind != 'exercise' else
+                            [content['assessment_item_ids'] for content in content['assessmentmetadata']]}
+                            for content in contents if content['kind'] == kind]
+            except KeyError:
+                #  old api format
+                self.download_url = 'download_url'
         return resources
 
     def get_resources(self):
         resources = {'video': [], 'html5': [], 'document': [], 'exercise': []}
         if not self.headers:
             self.login_admin()
-        r = requests.get('{base_url}/api/contentnode/?popular=true'.format(base_url=self.base_url),
+        # get available channels:
+        r = requests.get('{base_url}/api/contentnode/all_content/'.format(base_url=self.base_url),
                          headers=self.headers)
+        if r.status_code == 404:
+            r = requests.get('{base_url}/api/content/contentnode_slim/'.format(base_url=self.base_url),
+                            headers=self.headers)
         if r.status_code != 200:
             return resources
-        try:
-            contents = json.loads(r.content)
-            for kind in resources.keys():
-                resources[kind] = self.get_content_resources(contents, kind)
-        except ValueError:
-            #  bad response from the server
-            pass
-        finally:
-            return resources
+        else:
+            try:
+                contents = json.loads(r.content)
+                for kind in resources.keys():
+                    resources[kind] = resources[kind] + self.get_content_resources(contents, kind)
+            except ValueError:
+                #  bad response from the server
+                pass
+            finally:
+                return resources
 
 
 class KolibriUserBehavior(TaskSet):
@@ -156,9 +166,10 @@ class KolibriUserBehavior(TaskSet):
 
     def get_headers(self):
         r = self.client.get('/user/')
+        r = self.client.get('/api/auth/session/current/?active=false')
         self.csrf_token = r.cookies['csrftoken']
         session_identifier = 'kolibri' if 'kolibri' in r.cookies else 'sessionid'
-        self.session_id = r.cookies[session_identifier]
+        self.session_id = r.cookies['csrftoken']
         cookie_header = '{session_identifier}={session_id}; csrftoken={csrf_token}'.format(
             session_identifier=session_identifier, session_id=self.session_id, csrf_token=self.csrf_token)
         return {'X-CSRFToken': self.csrf_token, 'Cookie': cookie_header}
@@ -264,9 +275,15 @@ class KolibriUserBehavior(TaskSet):
             self.do_attemptlog(resource)
 
     def fetch_resource_files(self, resource, kind):
-        for file_url in resource['files']:
-            if file_url:
-                self.client.get(file_url, timeout=KolibriUserBehavior.TIMEOUT)
+        if kind == 'exercise':
+            exercise_base = resource['files'][0]
+            for assessment_item_id in resource['assessment_item_ids'][0]:
+                self.client.get("{base}{assessment}.json".format(base=exercise_base, assessment=assessment_item_id),
+                                timeout=KolibriUserBehavior.TIMEOUT)
+        else:
+            for file_url in resource['files']:
+                if file_url:
+                    self.client.get(file_url, timeout=KolibriUserBehavior.TIMEOUT)
 
     def get_logs_ids_dict(self):
         return {
