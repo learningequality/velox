@@ -39,7 +39,7 @@ except ImportError:
     from lib.locust.user import KolibriUserBehavior, AdminUser
     from lib.locust.wrapper import launch
 
-admin = AdminUser(base_url=os.environ.get('KOLIBRI_BASE_URL', 'http://127.0.0.1:8000'))
+admin = AdminUser(base_url=os.environ.get('KOLIBRI_BASE_URL', 'http://192.168.0.24:8080'))
 KolibriUserBehavior.KOLIBRI_USERS = admin.get_users()
 KolibriUserBehavior.KOLIBRI_RESOURCES = admin.get_resources()
 KolibriUserBehavior.RANDOMIZE = False
@@ -74,8 +74,8 @@ class WebsiteUser(HttpLocust):
     max_wait = 0
 
 
-def run(learners=4):
-    launch(WebsiteUser, learners, run_time=80)
+def run(learners=3):
+    launch(WebsiteUser, learners, run_time=200  )
 
 
 if __name__ == '__main__':
