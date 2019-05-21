@@ -1,4 +1,6 @@
-requests==2.18.4
-locustio==0.8.1
-selenium
-gevent
+locustio==0.11.0
+beautifulsoup4==4.7.1
+gevent==1.4.0
+requests==2.21.0
+har-transformer==1.2.4
+

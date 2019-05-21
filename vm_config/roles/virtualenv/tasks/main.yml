@@ -1,6 +1,0 @@
----
-- name: Install pip
-  apt: pkg=python-pip state=latest
-
-- name: Install virtualenv
-  shell: pip install virtualenv
