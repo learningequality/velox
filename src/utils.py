@@ -12,13 +12,16 @@ import typing
 import traceback
 
 from datetime import datetime
+from locust import HttpLocust
+from locust.main import load_locustfile
 from pathlib import Path
+from typing import List
 
 if sys.version_info < (3, 5):
     raise Exception('Python >= 3.5 is needed to use this utils module')
 
 __all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts',
-           'get_free_tcp_port', 'show_error', 'add_timestamp']
+           'get_free_tcp_port', 'show_error', 'add_timestamp', 'parse_locustfile']
 
 
 def enable_log_to_stdout(logname):
@@ -70,7 +73,6 @@ def get_config_opts(wanted, **kwargs):
     the following prioritization order, from higher to lower:
     - command line arguments
     - settings.py file arguments, if it exists
-    - defaults defined in this utils module
     """
     try:
         from settings import config
@@ -84,7 +86,10 @@ def get_config_opts(wanted, **kwargs):
         if not getattr(opts, opt_key, None):
             if config:
                 try:
-                    setattr(opts, opt_key, config[opt_key])
+                    if opt_key == "users":
+                        setattr(opts, opt_key, is_valid_file(config[opt_key]))
+                    else:
+                        setattr(opts, opt_key, config[opt_key])
                 except KeyError:
                     pass
 
@@ -139,11 +144,6 @@ def get_parse_args_definitions(wanted=None):
                 'default': 'exercise'
             }
         ],
-        'learners': [
-            '-l', '--learners', {
-                'required': False, 'default':10, 'type': int, 'help': 'Number of concurrent learners that will be tested'
-            }
-        ],
         'test': [
             '-t', '--test', {
                 'required': False, 'help': 'Name of the test to be run (or "all" to run them all)'
@@ -151,7 +151,7 @@ def get_parse_args_definitions(wanted=None):
         ],
         'server': [
             '-s', '--server', {
-                'required': False, 'type':str, 'help': 'Url of the server to be tested'
+                'required': False, 'type': str, 'help': 'Url of the server to be tested'
             }
         ],
         'iterations': [
@@ -179,3 +179,42 @@ def add_timestamp(url, first=False):
     new_url = '{url}{separator}{timestamp}={timestamp}'.format(
         url=url, separator=separator, timestamp=time_token)
     return new_url
+
+
+def parse_locustfile(locustfile: str) -> List[HttpLocust]:
+    # if the file does not include the path, look for it in the scenarios folder:
+    if not Path(locustfile).exists():
+        locustfile = str(Path('scenarios').joinpath(locustfile))
+
+    docstring, locusts = load_locustfile(locustfile)
+    locust_classes = list(locusts.values())
+    return locust_classes
+
+class LocustOptions(object):
+    def __init__(self):
+        self.host = None
+        self.web_host = ""
+        self.port = 8089
+        self.locustfile = "locustfile"
+        self.master = False
+        self.slave = False
+        self.master_host = "127.0.0.1"
+        self.master_port = 5557
+        self.master_bind_host = "*"
+        self.master_bind_port = 5557
+        self.expect_slaves = 1
+        self.no_web = False
+        self.num_clients = 1
+        self.hatch_rate = 1
+        self.num_requests = None
+        self.loglevel = 'INFO'
+        self.logfile = None
+        self.print_stats = False
+        self.only_summary = False
+        self.no_reset_stats = False
+        self.list_commands = False
+        self.show_task_ratio = False
+        self.show_task_ratio_json = False
+        self.heartbeat_liveness = 3  # set number of seconds before failed heartbeat from slave
+        self.heartbeat_interval = 1  # set number of seconds delay between slave heartbeats to master
+        self.show_version = False

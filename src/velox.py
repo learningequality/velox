@@ -32,22 +32,30 @@ IMPORTANT NOTES:
 import gevent.monkey
 gevent.monkey.patch_all()  # noqa
 
+import csv
 import os
+import multiprocessing
+import socket
 import sys
-import tempfile
 
 from datetime import datetime
 from filelock import FileLock
-from importlib import import_module
+from locust import runners
+from locust import events, web
+from locust.main import version
+from locust.stats import print_percentile_stats, print_error_report, print_stats
 from pathlib import Path
 from utils import calculate_duration
-from utils import enable_log_to_stdout, get_free_tcp_port
+from utils import enable_log_to_stdout
 from utils import get_config_opts
+from utils import parse_locustfile
 
 from utils import show_error
+from utils import LocustOptions
 
 if sys.version_info < (3, 5):
     raise Exception('Python >= 3.5 is needed to run velox')
+
 
 class EnvironmentSetup(object):
 
@@ -65,39 +73,65 @@ class EnvironmentSetup(object):
         # They all are reasonable in this case.
         self.opts = opts
         self.logger = logger
-        temp_dir = tempfile.mkdtemp()
-        self.logger.info('Created temp working directory: {}'.format(temp_dir))
-        self.port = get_free_tcp_port()
-        self.base_url = 'http://127.0.0.1:{}'.format(self.port)
-        self._instance = None
+        self.users = self.load_users()
 
-    def load_tests(self):
-        """
-        If a test name is passed as an argument it returns its module.
-        If not, it will return all the modules for all the tests available
-        inside the scenarios directory.
-        """
-        def load_test(test_name):
-            """
-            Returns the module in scenarios directory named test_name
-            :param: test_name: Name of test file in the scenarios directory
-            :returns: Loaded python module
-            """
-            if test_name.lower().endswith('.py'):
-                test_name = test_name[:-3]
-            module = import_module(test_name)
-            return module
-        if self.opts.test != 'all':
-            yield load_test(self.opts.test)
-        else:
-            scenarios_tests_path = 'scenarios'
-            entries = os.listdir(scenarios_tests_path)
-            blacklisted = ['__init__.py', 'example.py']
-            for entry in entries:
-                if entry not in blacklisted and entry.endswith('.py'):
-                    yield load_test(entry)
-                else:
-                    continue
+    def load_users(self):
+        users = []
+        reader = csv.reader(self.opts.users)
+        for row in reader:
+            users.append((row[0], '' if len(row) == 1 else row[1]))
+        self.opts.users.close()
+        return users
+
+
+class LocustStarter(object):
+    def __init__(self, base_url, locustfile):
+        self.slaves_num = multiprocessing.cpu_count()
+        self.locust_classes = parse_locustfile(locustfile)
+        logger.info("Starting Locust %s" % version)
+
+    def start_master(self):
+        options = LocustOptions()
+        options.master = True
+        master_greenlet = gevent.spawn(web.start, self.locust_classes, options)
+        runners.locust_runner = runners.MasterLocustRunner(self.locust_classes, options)
+        try:
+            master_greenlet.join()
+        except KeyboardInterrupt:
+            events.quitting.fire()
+            print_stats(runners.locust_runner.request_stats)
+            print_percentile_stats(runners.locust_runner.request_stats)
+            print_error_report()
+            sys.exit(0)
+
+    def start_slave(self):
+        options = LocustOptions()
+        options.slave = True
+        runners.locust_runner = runners.SlaveLocustRunner(self.locust_classes, options)
+        slave_greenlet = runners.locust_runner.greenlet
+        try:
+            slave_greenlet.join()
+        except socket.error as ex:
+            logger.error("Failed to connect to the Locust master: %s", ex)
+            sys.exit(-1)
+        except KeyboardInterrupt:
+            events.quitting.fire()
+            sys.exit(0)
+
+    def start(self):
+        processes = []
+        import pdb; pdb.set_trace()
+
+        for _ in range(self.slaves_num):
+            p_slave = multiprocessing.Process(target=self.start_slave)
+            p_slave.daemon = True
+            p_slave.start()
+            processes.append(p_slave)
+
+        try:
+            self.start_master()
+        except KeyboardInterrupt:
+            sys.exit(0)
 
 
 if __name__ == '__main__':
@@ -106,29 +140,27 @@ if __name__ == '__main__':
     opts = get_config_opts(wanted=wanted_args, description='Velox setup script')
     log_name = 'setup_tests'
     logger = enable_log_to_stdout(log_name)
-    tests_durations = {}
+    tests_durations = []
     # add scenarios directory to the sys path:
     sys.path.append(str(Path.cwd().joinpath('scenarios')))
     with FileLock('{}.lock'.format(log_name)):
         try:
             logger.info('Tests setup script started')
             es = EnvironmentSetup(opts, logger)
-            os.environ['KOLIBRI_BASE_URL'] = es.base_url
-            for test in es.load_tests():
-                # Each test is done three times
-                tests_durations[test.__name__] = []
-                for i in range(opts.iterations):
-                    test_start = datetime.utcnow()
-                    logger.info('{n} - Running test {test_name}'.format(n=i + 1, test_name=test.__name__))
+            os.environ['KOLIBRI_BASE_URL'] = opts.server
+            for i in range(opts.iterations):
+                test_start = datetime.utcnow()
+                logger.info('{n} - Running test {test_name}'.format(n=i + 1, test_name=opts.test))
 
-                    # Actual test execution:
-                    try:
-                        test.run(opts.learners)
-                    except AttributeError:
-                        logger.error('{} is not a correct module to run tests'.format(test.__name__))
-                    except Exception as error:
-                        show_error(logger, error, 'when trying to run {}'.format(test.__name__))
-                    tests_durations[test.__name__].append(calculate_duration(test_start))
+                # Actual test execution:
+                try:
+                    LocustStarter(opts.server, opts.test).start()
+                except AttributeError:
+                    logger.error('{} is not a correct module to run tests'.format(opts.test))
+                except Exception as error:
+                    show_error(logger, error, 'when trying to run {}'.format(opts.test))
+                tests_durations.append(calculate_duration(test_start))
+
             duration = calculate_duration(start_date)
             logger.info('::Duration {}'.format(duration))
             logger.info('Tests finished')
