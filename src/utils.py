@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+
 """
 Common function used by different parts of the application
 """
@@ -191,30 +193,36 @@ def parse_locustfile(locustfile: str) -> List[HttpLocust]:
     return locust_classes
 
 class LocustOptions(object):
+    # flake8: noqa
     def __init__(self):
-        self.host = None
-        self.web_host = ""
-        self.port = 8089
-        self.locustfile = "locustfile"
-        self.master = False
-        self.slave = False
-        self.master_host = "127.0.0.1"
-        self.master_port = 5557
-        self.master_bind_host = "*"
-        self.master_bind_port = 5557
-        self.expect_slaves = 1
-        self.no_web = False
-        self.num_clients = 1
-        self.hatch_rate = 1
-        self.num_requests = None
-        self.loglevel = 'INFO'
-        self.logfile = None
-        self.print_stats = False
-        self.only_summary = False
-        self.no_reset_stats = False
-        self.list_commands = False
-        self.show_task_ratio = False
-        self.show_task_ratio_json = False
+        self.host = None  # Host to load test in the following format: http://10.21.32.33
+        self.web_host = ""  # Host to bind the web interface to. Defaults to '' (all interfaces)
+        self.port = 8089  # Port on which to run web host
+        self.locustfile = "locustfile"  # Python module file to import, e.g. '../other.py'. Default: locustfile
+        self.csvfilebase = None  # Store current request stats to files in CSV format
+        self.master = False  # Set locust to run in distributed mode with this process as master
+        self.slave = False  # Set locust to run in distributed mode with this process as slave
+
+        self.master_host = "127.0.0.1"  # Host or IP address of locust master for distributed load testing. Only used when running with --slave. Defaults to 127.0.0.1.
+        self.master_port = 5557  # The port to connect to that is used by the locust master for distributed load testing. Only used when running with --slave. Defaults to 5557. Note that slaves will also connect to the master node on this port + 1.
+        self.master_bind_host = "*"  # Interfaces (hostname, ip) that locust master should bind to. Only used when running with --master
+        self.master_bind_port = 5557  # Port that locust master should bind to. Only used when running with --master. Defaults to 5557. Note that Locust will also use this port + 1, so by default the master node will bind to 5557 and 5558.
         self.heartbeat_liveness = 3  # set number of seconds before failed heartbeat from slave
         self.heartbeat_interval = 1  # set number of seconds delay between slave heartbeats to master
-        self.show_version = False
+        self.expect_slaves = 1  # How many slaves master should expect to connect before starting the test (only when --no-web used).
+        self.no_web = False  # Disable the web interface, and instead start running the test immediately. Requires -c and -r to be specified.
+        self.num_clients = 1  # Number of concurrent Locust users. Only used together with --no-web
+        self.hatch_rate = 1  # The rate per second in which clients are spawned. Only used together with --no-web
+        # self.num_requests = None
+        self.run_time = None  # Stop after the specified amount of time, e.g. (300s, 20m, 3h, 1h30m, etc.). Only used together with --no-web
+        self.loglevel = 'INFO'  # Choose between DEBUG/INFO/WARNING/ERROR/CRITICAL
+        self.logfile = None  # Path to log file. If not set, log will go to stdout/stderr
+        self.print_stats = False  # Print stats in the console
+        self.only_summary = False  # Only print the summary stats
+        # self.no_reset_stats = False
+        self.reset_stats = True  # Reset statistics once hatching has been completed. Should be set on both master and slaves when running in distributed mode
+        self.list_commands = False  # Show list of possible locust classes and exit
+        self.show_task_ratio = False  # print table of the locust classes' task execution ratio
+        self.show_task_ratio_json = False  # print json data of the locust classes' task execution ratio
+        self.show_version = False  # show program's version number and exit
+        self.exit_code_on_error = 1  # sets the exit code to post on error

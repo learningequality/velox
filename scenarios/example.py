@@ -1,5 +1,11 @@
 # This Python file has been created to work with the velox tool for Kolibri.
 # Using it out of this environment makes no sense.
+
+
+
+
+
+
 import re
 from locust import HttpLocust
 from locust import TaskSequence
@@ -7,7 +13,16 @@ from locust import TaskSet
 from locust import seq_task
 from locust import task
 import logging
-from user import KolibriUserBehavior
+import os
+
+try:
+    from user import KolibriUserBehavior
+except ImportError:
+    # the test is being run out of velox environment
+    # and velox package is not installed
+    import sys
+    sys.path.append(os.path.join(os.getcwd(), 'src'))
+    from user import KolibriUserBehavior
 class har(KolibriUserBehavior):
     @task(1)
     class prueba3(KolibriUserBehavior):

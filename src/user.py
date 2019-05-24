@@ -27,6 +27,7 @@ def param_replace(url_struct: urllib.parse.ParseResult, keyword: str, value: str
         if path[position + 1] != '':
             path[position + 1] = value
             final_struct = url_struct._replace(path='/'.join(path))
+
     return final_struct
 
 
@@ -50,7 +51,8 @@ class ClientWrapper(object):
         params_replacements = {k: self.task.logs[k] for k in loggers}
         params_replacements['userprogress'] = self.task.user_id
         for param_id in params_replacements:
-            url_struct = param_replace(url_struct, param_id, params_replacements[param_id])
+            if params_replacements[param_id]:
+                url_struct = param_replace(url_struct, param_id, params_replacements[param_id])
 
         url_struct = url_struct._replace(netloc=self.server_url)
         return url_struct.geturl()
@@ -133,6 +135,8 @@ class KolibriUserBehavior(TaskSequence):
             if 'auth' in response.url:
                 if self.user_id is None:
                     self.user_id = response_data.get('user_id', None)
+                    if self.user_id is None:
+                        pass  # auth is failing, is the server failing or the credentials are not correct????
                 if self.facility_id is None:
                     self.facility_id = response_data.get('facility_id', None)
             else:

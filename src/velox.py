@@ -120,14 +120,11 @@ class LocustStarter(object):
 
     def start(self):
         processes = []
-        import pdb; pdb.set_trace()
-
         for _ in range(self.slaves_num):
             p_slave = multiprocessing.Process(target=self.start_slave)
             p_slave.daemon = True
             p_slave.start()
             processes.append(p_slave)
-
         try:
             self.start_master()
         except KeyboardInterrupt:
