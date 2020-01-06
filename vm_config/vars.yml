@@ -1,9 +1,0 @@
----
-ansible_python_interpreter: /usr/bin/python3
-
-velox_venv_dir: /home/vagrant/.venvs/velox
-velox_dev_dir: /vagrant
-
-kolibri_git_repository: https://github.com/learningequality/kolibri.git
-kolibri_venv_dir: /home/vagrant/.venvs/kolibri
-kolibri_dev_dir: /home/vagrant/kolibri
