@@ -101,3 +101,7 @@ output/
 
 vm_config/main.retry
 .vagrant/
+
+.mypy_cache/
+.vscode/
+
