@@ -2,7 +2,8 @@ from transformer.plugins import plugin, Contract
 import transformer.python
 from transformer.task import Task2
 from typing import List
-from transformer.python import Statement
+from transformer.python import Statement, Assignment, Symbol, Literal, Standalone
+
 
 @plugin(Contract.OnTask)
 def clean_request(task: Task2) -> Task2:
@@ -10,7 +11,7 @@ def clean_request(task: Task2) -> Task2:
     Removes Chrome-specific, RFC-non-compliant headers starting with `:`.
     Removes the cookie header as it is handled by Locust's HttpSession.
     """
-    response = transformer.python.Standalone("self.parse_response(response)")
+    response = Standalone("self.parse_response(response)")
     items_to_remove = ("Pragma", "Cache-Control", "Referer")
     # items_to_replace = {'User-Agent': 'velox', 'Host': '{server}', 'X-CSRFToken': '{CSRFToken}'}
     # payload_to_replace = {'username': '{username}', 'password':'{password}'}
@@ -47,14 +48,16 @@ def add_format(tree: List[Statement]) -> List[Statement]:
     ]
 
     # # insert vars:
-    # tree.insert(2, transformer.python.Assignment(lhs="server",
-    #                                              rhs=None,
-    #                                              comments=["Server address to be assigned when calling this module"]))
-    # tree.insert(2, transformer.python.Assignment(lhs="port",
-    #                                              rhs=None,
-    #                                              comments=["Port to be assigned when calling this module"]))
+    # tree.insert(2, Assignment(lhs="server",
+    #                           rhs=None,
+    #                           comments=["Server address to be assigned when calling this module"]))
+    # tree.insert(2, Assignment(lhs="port",
+    #                           rhs=None,
+    #                           comments=["Port to be assigned when calling this module"]))
     # add velox imports:
-    tree.insert(2, transformer.python.Import(["KolibriUserBehavior"], source="user"))
+    tree.insert(
+        2, transformer.python.Import(["KolibriUserBehavior"], source="velox.user")
+    )
     tree.insert(2, transformer.python.Import(["logging"]))
     tree.insert(2, transformer.python.Import(["between"], source="locust"))
     # add formatting to the requests:
@@ -64,9 +67,9 @@ def add_format(tree: List[Statement]) -> List[Statement]:
         subtree for subtree in tree if isinstance(subtree, transformer.python.Class)
     ]
     for subtree in classes:
-        if subtree.name == "har":
+        if subtree.name[:3] == "har":
             har = subtree
-        elif subtree.name == "LocustForhar":
+        elif subtree.name[:12] == "LocustForhar":
             locust_for_har = subtree
     if har:
         # functions = [line.target for stmt in har.statements for line in stmt.target.statements]
@@ -79,28 +82,24 @@ def add_format(tree: List[Statement]) -> List[Statement]:
         # for func in functions:
         #     if isinstance(func, transformer.python.Function):
         #         statement = func.statements[0]
-        #         if isinstance(statement, transformer.python.Assignment):
+        #         if isinstance(statement, Assignment):
         #             if statement.rhs.name == 'this task\'s request field':
         #                 statement.rhs = transformer.python.FunctionCall(str(statement.rhs)
         #                                                                 .replace("self.client.", "self.", 1))
     if locust_for_har:
         # add needed statements for Velox to work
         statements = [
-            transformer.python.Assignment(
+            Assignment(
                 "wait_time",
-                transformer.python.Literal(
+                Symbol(
                     "between({min_d}, {max_d})".format(
                         min_d=transformer.locust.LOCUST_MIN_WAIT_DELAY,
                         max_d=transformer.locust.LOCUST_MAX_WAIT_DELAY,
                     )
                 ),
             ),
-            transformer.python.Assignment(
-                "test_time", transformer.python.Literal("30s")
-            ),
-            transformer.python.Assignment(
-                "host", transformer.python.Literal("'http://127.0.0.1:8080'")
-            ),
+            Assignment("test_time", Literal("30s")),
+            Assignment("host", Literal("http://127.0.0.1:8080")),
         ]
         locust_for_har.statements += statements
     return tree

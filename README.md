@@ -19,7 +19,7 @@ With Velox we are able to:
 
 - After a dump of the browser with an user journey, create Locust tests and use them against  server to reproduce any number of users
 
-  
+
 
   Velox is agnostic of the backend in the server. It only needs to have the url of the server and the users and channels data provided in the tests to work correctly.
 
@@ -28,9 +28,8 @@ With Velox we are able to:
 
 Velox provides a collection of scenarios to be tested. These scenarios depend on the existence of a testing channel imported in the server to be tested. The channels that need to be previously imported are:
 
-- **CK-12 Testing** with token `nakav-mafak`
-- **Performance Test - Small Channel 1** with token `gohuz-gikaj`
-- **Performance Test - Multiple Exercises Channel** with token `gohuz-gikaj`
+- **Velox testing channel** with token `gosin-tikos`
+- **Performance Test - Small Channel 1** with token `nilih-bubiz`
 
 The testing scenarios are defined using *Gherkin* stories, and upon of them, the needed Python files to run the tests have been generated. All these files are in the `scenarios` directory provided with Velox.
 
@@ -51,7 +50,7 @@ In order to create these needed Python files, Velox provides a tool that will cr
    6. Select Disable cache and Preserve log.
    7. Clear the existing log by clicking the Clear 🚫 button.
    8. Ensure recording is enabled: the Record button should be red 🔴 (click it to toggle).
-   9. Navigate to Kolibri server by entering the URL in the address bar, like http://127.0.0.1:8080 and 
+   9. Navigate to Kolibri server by entering the URL in the address bar, like http://127.0.0.1:8080 and
       perform your scenario by clicking through the pages, filling in forms, clicking buttons, etc. exactly as the *Gherkin* story from the step 1 explained.
    10. **End recording** by clicking the Record 🔴 button.
    11. **Right-click** on any of the file names listed in the bottom pane of the Network panel.
@@ -64,7 +63,7 @@ In order to create these needed Python files, Velox provides a tool that will cr
    1. Create a folder to store the files that are about to be created, for example scenarios/mychannel/
    2. In a console, execute transformer -p plugins.kolibri har/ >scenarios/mychannel/test1.py
 
-   
+
 
 
 
