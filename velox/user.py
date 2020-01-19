@@ -1,7 +1,8 @@
 import time
 import urllib.parse
 from json import JSONDecodeError
-from locust import TaskSequence
+from locust import TaskSequence  # type: ignore
+from requests.cookies import RequestsCookieJar
 from typing import Dict, Optional, Any
 
 loggers = (
@@ -53,8 +54,10 @@ class ClientWrapper(object):
     Client created to proxy and modify the requests before they are sent via locust
     Requests will be processed to modify the params from the original har file
     and adjust them to the current session.
-    The real client is the
+    The real client is the task.locust.client
     """
+
+    csrf_cookie_name = None
 
     def __init__(self, task: TaskSequence):
         self.task = task
@@ -65,6 +68,19 @@ class ClientWrapper(object):
         if parsed_url.port:
             netloc += ":%d" % parsed_url.port
         self.server_url = netloc
+
+    @classmethod
+    def set_csrf_cookie_name(cls, cookies: RequestsCookieJar):
+        """
+        Cookie name used for csrf is an option that
+        can change.
+        Let's assume the name always contains the substring 'csrf'
+        """
+        if not cls.csrf_cookie_name:
+            for cookie in cookies:
+                if "csrf" in cookie.name:
+                    cls.csrf_cookie_name = cookie.name
+                    break
 
     def process_url(self, url: str) -> str:
 
@@ -93,8 +109,12 @@ class ClientWrapper(object):
 
     def process_headers(self, headers):
         items_to_replace = {"User-Agent": "velox", "Host": self.server_url}
-        if "csrftoken" in self.client.cookies:
-            items_to_replace["X-CSRFToken"] = self.client.cookies["csrftoken"]
+        if "X-CSRFToken" in headers:
+            if not ClientWrapper.csrf_cookie_name:
+                ClientWrapper.set_csrf_cookie_name(self.client.cookies)
+            items_to_replace["X-CSRFToken"] = self.client.cookies[
+                ClientWrapper.csrf_cookie_name
+            ]
         return {
             k: v if (k not in items_to_replace) else items_to_replace[k]
             for k, v in headers.items()
