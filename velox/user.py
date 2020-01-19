@@ -81,6 +81,7 @@ class ClientWrapper(object):
         params_replacements = {k: self.task.logs[k] for k in loggers}
         if self.task.user_id:
             params_replacements["userprogress"] = self.task.user_id
+            params_replacements["facilityuser"] = self.task.user_id
         for param_id in params_replacements:
             url_struct = param_replace(
                 url_struct, param_id, params_replacements[param_id]
@@ -115,6 +116,7 @@ class ClientWrapper(object):
 
         if "user" in payload:
             payload_to_replace["user"] = self.task.user_id
+        # in case sessionlog or summarylog are in the payload:
         for logger in loggers:
             logger_slim = logger.replace("content", "")
             if logger_slim in payload:
@@ -173,6 +175,7 @@ class KolibriUserBehavior(TaskSequence):
         if (
             response.status_code == 400
             or response.status_code == 404
+            or response.status_code == 403
             or response.status_code >= 500
         ):
             print(
