@@ -13,8 +13,13 @@ import traceback
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional
 
-__all__ = ['calculate_duration', 'enable_log_to_stdout', 'get_config_opts',
-           'show_error', 'add_timestamp']
+__all__ = [
+    "calculate_duration",
+    "enable_log_to_stdout",
+    "get_config_opts",
+    "show_error",
+    "add_timestamp",
+]
 
 
 def enable_log_to_stdout(logname: str) -> logging.Logger:
@@ -24,7 +29,9 @@ def enable_log_to_stdout(logname: str) -> logging.Logger:
     handler = logging.StreamHandler()
     handler.setLevel(logging.DEBUG)
     # create formatter:
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     handler.setFormatter(formatter)
     log.addHandler(handler)
     return log
@@ -41,10 +48,10 @@ def calculate_duration(start: datetime) -> float:
     return duration
 
 
-def show_error(logger: logging.Logger, error: Exception, message: str = ''):
+def show_error(logger: logging.Logger, error: Exception, message: str = ""):
     error_text: str = str(error)
     if message:
-        error_text = '{} {}'.format(error_text, message)
+        error_text = "{} {}".format(error_text, message)
     logger.error(error_text)
     traceback.print_exc(file=sys.stdout)
 
@@ -94,18 +101,25 @@ def get_config_opts(wanted: List[Optional[str]], **kwargs: str) -> argparse.Name
             except Exception:
                 args_conf = None
 
-            if args_conf and 'choices' in args_conf and getattr(opts, opt_key) not in args_conf['choices']:
-                raise ValueError('{} is expected to be one of [{}]'.format(
-                    opt_key, ', '.join(args_conf['choices'])))
+            if (
+                args_conf
+                and "choices" in args_conf
+                and getattr(opts, opt_key) not in args_conf["choices"]
+            ):
+                raise ValueError(
+                    "{} is expected to be one of [{}]".format(
+                        opt_key, ", ".join(args_conf["choices"])
+                    )
+                )
 
     return opts
 
 
 def get_default_args() -> Dict[str, Any]:
     return {
-        'learners': 30,
-        'test': 'all',
-        'iterations': 3,
+        "learners": 30,
+        "test": "all",
+        "iterations": 3,
     }
 
 
@@ -116,8 +130,10 @@ def fill_parse_args(wanted: List[Optional[str]], **kwargs: str):
     :returns: A parser object to be used by the script
     """
     if not wanted:
-        wanted = [kwargs.get('wanted'), ]
-    description: Optional[str] = kwargs.get('description', None)
+        wanted = [
+            kwargs.get("wanted"),
+        ]
+    description: Optional[str] = kwargs.get("description", None)
 
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description)
     args_definitions: Dict[str, List] = get_parse_args_definitions(wanted)
@@ -135,28 +151,41 @@ def fill_parse_args(wanted: List[Optional[str]], **kwargs: str):
     return parser.parse_args()
 
 
-def get_parse_args_definitions(wanted: Optional[List[Optional[str]]] = None) -> Dict[str, List]:
+def get_parse_args_definitions(
+    wanted: Optional[List[Optional[str]]] = None,
+) -> Dict[str, List]:
     """
     Parse the args the script neeeds
     :param: wanted: list of args the application will use
     :returns: A list with the options for the wanted args
     """
     definitions = {
-        'learners': [
-            '-l', '--learners', {
-                'required': False, 'type': int, 'help': 'Number of learners per classroom that will use the tests'
-            }
+        "learners": [
+            "-l",
+            "--learners",
+            {
+                "required": False,
+                "type": int,
+                "help": "Number of learners per classroom that will use the tests",
+            },
         ],
-        'test': [
-            '-t', '--test', {
-                'required': False, 'help': 'Name of the test to be run (or "all" to run them all)'
-            }
+        "test": [
+            "-t",
+            "--test",
+            {
+                "required": False,
+                "help": 'Name of the test to be run (or "all" to run them all)',
+            },
         ],
-        'iterations': [
-            '-i', '--iterations', {
-                'required': False, 'type': int, 'help': 'Number of times each test will be run'
-            }
-        ]
+        "iterations": [
+            "-i",
+            "--iterations",
+            {
+                "required": False,
+                "type": int,
+                "help": "Number of times each test will be run",
+            },
+        ],
     }
 
     if wanted:
@@ -164,9 +193,11 @@ def get_parse_args_definitions(wanted: Optional[List[Optional[str]]] = None) -> 
 
     return definitions
 
+
 def add_timestamp(url: str, first: bool = False) -> str:
-    time_token: str = str(time.time()).replace('.', '')[:13]
-    separator: str = '?' if first else '&'
-    new_url: str = '{url}{separator}{timestamp}={timestamp}'.format(
-        url=url, separator=separator, timestamp=time_token)
+    time_token: str = str(time.time()).replace(".", "")[:13]
+    separator: str = "?" if first else "&"
+    new_url: str = "{url}{separator}{timestamp}={timestamp}".format(
+        url=url, separator=separator, timestamp=time_token
+    )
     return new_url
