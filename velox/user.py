@@ -1,9 +1,12 @@
 import time
 import urllib.parse
 from json import JSONDecodeError
+from typing import Any
+from typing import Dict
+from typing import Optional
+
 from locust import TaskSequence  # type: ignore
 from requests.cookies import RequestsCookieJar
-from typing import Dict, Optional, Any
 
 loggers = (
     "contentsessionlog",

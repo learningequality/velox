@@ -21,11 +21,10 @@ IMPORTANT NOTES:
     * Every test is run three times and the execution times are logged at the end of the process.
 
 """
-from __future__ import absolute_import, print_function, unicode_literals
-
-# Next two lines are needed to workaround the problem caused by the
-# combination of requests bug #3831 with urllib3 bug #1104
 import gevent.monkey
+
+# Above and below  two lines are needed to workaround the problem caused by the
+# combination of requests bug #3831 with urllib3 bug #1104
 
 gevent.monkey.patch_all()  # noqa
 
