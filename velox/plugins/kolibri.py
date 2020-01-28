@@ -58,9 +58,18 @@ def add_format(tree: List[tp.Statement]) -> List[tp.Statement]:
     #                           rhs=None,
     #                           comments=["Port to be assigned when calling this module"]))
     # add velox imports:
-    tree.insert(2, tp.Import(["KolibriUserBehavior"], source="velox.user"))
     tree.insert(2, tp.Import(["logging"]))
     tree.insert(2, tp.Import(["between"], source="locust"))
+    # velox user module.
+    # 'Try' is not available as a transformer.python block, we need to use OpaqueBlock
+    user_module = """
+try:
+    from velox.user import KolibriUserBehavior
+except ModuleNotFoundError:
+    from user import KolibriUserBehavior
+    """
+    # tree.insert(2, tp.Import(["KolibriUserBehavior"], source="velox.user"))
+    tree.insert(2, tp.OpaqueBlock(user_module))
     # add formatting to the requests:
     har = None
     locust_for_har = None

@@ -1,6 +1,4 @@
-locustio==0.13.1
-beautifulsoup4==4.8.1
 gevent==1.4.0
-requests==2.22.0
 har-transformer==1.2.6
-pre-commit==1.21.0
+locustio==0.13.1
+requests==2.22.0

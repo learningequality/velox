@@ -122,6 +122,7 @@ def get_default_args() -> Dict[str, Any]:
         "learners": 30,
         "test": "all",
         "iterations": 3,
+        "url": "http://127.0.0.1:8080",
     }
 
 
@@ -187,6 +188,11 @@ def get_parse_args_definitions(
                 "type": int,
                 "help": "Number of times each test will be run",
             },
+        ],
+        "url": [
+            "-u",
+            "--url",
+            {"required": False, "type": str, "help": "Url of the server to be tested"},
         ],
     }
 
