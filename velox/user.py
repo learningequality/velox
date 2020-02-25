@@ -5,8 +5,9 @@ from typing import Any
 from typing import Dict
 from typing import Optional
 
-from locust import TaskSequence  # type: ignore
 from requests.cookies import RequestsCookieJar
+
+from locust import TaskSequence  # type: ignore
 
 loggers = (
     "contentsessionlog",
@@ -42,7 +43,8 @@ def param_replace(
         return url_struct
 
     final_struct = url_struct
-    if keyword in url_struct.path:
+    kw = keyword + "/"
+    if kw in url_struct.path:
         path = url_struct.path.split("/")
         position = path.index(keyword)
         # check if next part is actually a parameter:
@@ -96,7 +98,10 @@ class ClientWrapper(object):
 
         # Then, let's replace the id parts that are inserted as part
         # of the url path, usually loggers ids
-        print(url)
+        print(
+            "---------------- %s of %s---------------"
+            % (self.task._index, len(self.task.tasks))
+        )
         params_replacements = {k: self.task.logs[k] for k in loggers}
         if self.task.user_id:
             params_replacements["userprogress"] = self.task.user_id
