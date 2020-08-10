@@ -123,7 +123,6 @@ def get_default_args() -> Dict[str, Any]:
         "test": "all",
         "iterations": 3,
         "url": "http://127.0.0.1:8080",
-        "skip": False,
     }
 
 
@@ -194,15 +193,6 @@ def get_parse_args_definitions(
             "-u",
             "--url",
             {"required": False, "type": str, "help": "Url of the server to be tested"},
-        ],
-        "skip": [
-            "-s",
-            "--skip",
-            {
-                "required": False,
-                "type": bool,
-                "help": "Velox will skip requests of css and js files that are usually cached",
-            },
         ],
     }
 

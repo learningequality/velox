@@ -103,9 +103,8 @@ if __name__ == "__main__":
     log_name = "setup_tests"
     logger: logging.Logger = enable_log_to_stdout(log_name)
     tests_durations: Dict[str, List[int]] = {}
-    # add locust directory to the sys path:
-    for path in ["locust", ".", ".."]:
-        sys.path.append(os.path.join(os.getcwd(), path))
+    # add scenarios directory to the sys path:
+    sys.path.append(os.path.join(os.getcwd(), "locust"))
     with FileLock("{}.lock".format(log_name)):
         try:
             logger.info("Tests setup script started")

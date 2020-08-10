@@ -43,8 +43,7 @@ def param_replace(
         return url_struct
 
     final_struct = url_struct
-    kw = keyword + "/"
-    if kw in url_struct.path:
+    if keyword in url_struct.path:
         path = url_struct.path.split("/")
         position = path.index(keyword)
         # check if next part is actually a parameter:
@@ -98,10 +97,7 @@ class ClientWrapper(object):
 
         # Then, let's replace the id parts that are inserted as part
         # of the url path, usually loggers ids
-        print(
-            "---------------- %s of %s---------------"
-            % (self.task._index, len(self.task.tasks))
-        )
+        print(url)
         params_replacements = {k: self.task.logs[k] for k in loggers}
         if self.task.user_id:
             params_replacements["userprogress"] = self.task.user_id
