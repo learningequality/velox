@@ -1,4 +1,4 @@
-requests==2.20.0
+requests==2.31.0
 locustio==0.8.1
 selenium
 gevent
